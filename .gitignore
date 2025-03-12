@@ -1,0 +1,9 @@
+*.html
+*.jpeg
+*.jpg
+*.key
+*.pdf
+*.png
+*.tiff
+olddocs/
+report.md
