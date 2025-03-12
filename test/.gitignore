@@ -1,0 +1,11 @@
+nohup.out
+aligned/
+attack/
+extract/
+inputs/
+wmarked/
+report.*
+fails.*
+flat.*
+*.svg
+old/
