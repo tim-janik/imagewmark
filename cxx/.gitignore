@@ -1,3 +1,5 @@
-imagewmark-cxx
-autocfg.hh
-imagewmark-cxx.map
+/*.o
+/*.o.d
+/imagewmark-cxx
+/autocfg.hh
+/imagewmark-cxx.map
