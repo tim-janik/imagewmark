@@ -69,7 +69,7 @@ def cli_parser():
   getp.add_argument ('--original', type = str, default = '', help = "Use original image for detection")
   add_common_args (getp, True)
   # GEN-KEY
-  genp = cmdp.add_parser ('gen-key', help = "Generate 128-bit watermarking key, to be used with --key option", formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+  genp = cmdp.add_parser ('gen-key', help = "Generate 128-bit watermarking key, to be used with the --key option", formatter_class = argparse.ArgumentDefaultsHelpFormatter)
   genp.add_argument ('output_key_file', type = str, help = "File to store watermarking key")
   add_common_args (genp, False)
   return p

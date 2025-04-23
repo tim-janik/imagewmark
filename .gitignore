@@ -7,3 +7,6 @@
 *.tiff
 olddocs/
 report.md
+/BACKLOG.md
+__pycache__
+x*
