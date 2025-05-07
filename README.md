@@ -85,6 +85,39 @@ For automation, the watermark extraction supports result generation in JSON form
 	}
 
 
+## TEST IMAGE DATASETS
+
+For testing and benchmarking watermarking robustness after code changes, the following datasets could be useful:
+
+- [**Kaggle Flickr Dataset**](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset):
+  Mostly small photos, good for quick testing.
+
+- [**Unsplash Datasets**](https://github.com/unsplash/datasets):
+  High-resolution images suitable for testing detailed images.
+
+- [**Archive.org Music Cover Art**](https://archive.org/details/CoverArtArchiveSlideshow):
+  Contains montage images of music album covers. Extract individual covers with:
+  ```bash
+  ( pos=("1000x1000+3+2" "1000x1000+1009+2" "1000x1000+1009+1006" "1000x1000+3+1006");
+    i=3; for f in `ls *.* | sort -V`; do s="${f%.jpg}";
+    convert "$f" -crop "${pos[$((i%4))]}" +repage out/"$s".png && echo "$f" || break ;
+    i=$((i+1)); done )
+  ```
+
+- [**Archive.org Vintage Movie Posters**](https://archive.org/details/illustration_Vintage_Movie_Posters):
+  Collection of old horror movie posters.
+
+- [**Open Images Dataset V7**](https://storage.googleapis.com/openimages/web/index.html):
+  Dataset with millions of diverse images.
+
+- [**ImageCompression.info**](https://imagecompression.info/test_images/):
+  High-resolution, high-precision images selected for image research, RGB/gray, 16-bit.
+  Designed to stress different algorithm aspects, photographic content, 3D-generated scenes, film scans, night shots.
+
+Testing on a wide variety of images helps to quantify watermarking improvements or to
+identify potential regressions in resilience after code modifications.
+
+
 ## LICENSE
 
 This program is free software: you can redistribute it and/or modify
