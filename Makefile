@@ -22,6 +22,10 @@ clean:
 	$(MAKE) -C src $@
 	rm -f $(CLEANFILES) ./imagewmark
 
+test:
+	$(MAKE) -C tests/ $@
+.PHONY: test
+
 extract_files_py = $(strip \
 	src/common.py	\
 	src/ddist.py	\

@@ -161,6 +161,10 @@ all: $(RESULT_REPORTS)
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
 	$Q ls -l $(RESULT_REPORTS)
 
+# == test ==
+test: all
+.PHONY: test
+
 # == clean ==
 clean-attack:
 	rm -rf ../tests/attack/
