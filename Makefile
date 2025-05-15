@@ -38,11 +38,21 @@ other_files_py = $(strip \
 	src/wmtool.py	\
 )
 
-check:
-	$(QECHO) Check 'Detect invalid print() statements'
+# == check ==
+check: check-syntax check-cxx check-src
+.PHONY: check
+check-syntax:
+	$(QECHO) CHECK 'Detect invalid print() statements'
 	$Q { TCOLOR=--color=always ; tty -s <&1 || TCOLOR=; } \
 	&& ( grep $$TCOLOR -nE '\bprint *\(' -r $(extract_files_py) || : )
-	$(MAKE) -C cxx $@
-	$(MAKE) -C src $@
+.PHONY: check-syntax
+check-cxx:
+	$(MAKE) -C cxx check
+.PHONY: check-cxx
+check-src:
+	$(MAKE) -C src check
+.PHONY: check-src
 
+# == all ==
 all: $(ALL_TARGETS)
+# Must be last rule
