@@ -26,7 +26,7 @@ imagewmark_get()
 if [ "x$IWM_SET" != "x" ] && [ -d "$IWM_SET" ]; then
   ls $IWM_SET/*
 else
-  ls test/T*
+  ls tests/T*
 fi | while read i
 do
   for SEED in $IWM_SEEDS
