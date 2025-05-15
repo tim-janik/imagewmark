@@ -16,10 +16,11 @@ include doc/Makefile.mk
 all:
 	$(MAKE) -C cxx $@
 	$(MAKE) -C src $@
+	ln -sf src/imagewmark .
 clean:
 	$(MAKE) -C cxx $@
 	$(MAKE) -C src $@
-	rm -f $(CLEANFILES)
+	rm -f $(CLEANFILES) ./imagewmark
 
 extract_files_py = $(strip \
 	src/common.py	\
