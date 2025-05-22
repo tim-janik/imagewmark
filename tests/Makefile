@@ -8,10 +8,10 @@ MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
 QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && echo "$$QOUT"; }; QECHO
-SRCDIR		:= $(dir $(MAKEFILE))
+SRCDIR		?= $(dir $(MAKEFILE))/..
+WATERMARK	?= fedcba98765432100123456789abcdef
 ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
-WATERMARK	:= fedcba98765432100123456789abcdef
 __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
 
 MAGICK_CONFIGURE_PATH != pwd
