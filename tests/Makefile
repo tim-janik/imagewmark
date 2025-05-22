@@ -10,7 +10,7 @@ SHELL		:= /bin/bash
 .SHELLFLAGS	:= -Eeuo pipefail -c
 TOPDIR		:= $(dir $(MAKEFILE))/..
 SRCDIR		:= $(TOPDIR)/src
-TESTDIR		:= $(TOPDIR)/test
+TESTDIR		:= $(TOPDIR)/tests
 ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
 WATERMARK	:= fedcba98765432100123456789abcdef
@@ -161,15 +161,19 @@ all: $(RESULT_REPORTS)
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
 	$Q ls -l $(RESULT_REPORTS)
 
+# == test ==
+test: all
+.PHONY: test
+
 # == clean ==
 clean-attack:
-	rm -rf ../test/attack/
+	rm -rf ../tests/attack/
 clean-extract:
-	rm -rf ../test/extract/ ../test/aligned/
+	rm -rf ../tests/extract/ ../tests/aligned/
 clean-reports:
 	rm -f *.tmp *.svg $(RESULT_REPORTS) report.md
 clean: clean-attack clean-extract clean-reports
-	rm -rf ../test/wmarked/ ../test/inputs/
+	rm -rf ../tests/wmarked/ ../tests/inputs/
 
 # TODO: json: prefix imagewmark get results with image file name
 # TODO: json: add filename field
