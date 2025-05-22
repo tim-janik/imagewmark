@@ -1,0 +1,30 @@
+#!/usr/bin/env -S python3 -b -B
+import sys, os, re, shutil
+import argparse
+
+def main():
+  script_dir = os.path.dirname (os.path.abspath (__file__))
+  # parse args
+  parser = argparse.ArgumentParser (description = "Generate test case Makefile for Imagewmark.")
+  parser.add_argument ("imagedir", help = "Directory containing input images.")
+  parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
+  parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
+  args = parser.parse_args()
+  outputdir = os.path.abspath (args.outputdir)
+  imagedir = os.path.abspath (args.imagedir)
+  if not os.path.isdir (imagedir):
+    print (f"Error: Directory not found: {imagedir}", file = sys.stderr)
+    sys.exit (1)
+  # clear and mkdir the outputdir
+  if args.clean and os.path.isdir (outputdir):
+    shutil.rmtree (outputdir)
+  os.makedirs (outputdir, exist_ok = True)
+  # generate Makefile
+  shutil.copy2 (os.path.join (script_dir, 'Makefile'), outputdir)
+  # shutil.copytree (script_dir, outputdir, symlinks=True, ignore_dangling_symlinks=True)
+
+  # Placeholder for test generation logic
+  print (f"Generating tests using images from: {imagedir} into {output_dir}")
+
+if __name__ == "__main__":
+  main()
