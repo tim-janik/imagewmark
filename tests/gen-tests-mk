@@ -4,6 +4,12 @@ import sys, os, re, shutil
 import argparse
 SRCDIR = os.path.dirname (os.path.dirname (os.path.abspath (__file__)))
 
+def eprint (*args):
+  print ('%s:' % sys.argv[0], *args, file = sys.stderr)
+def die (*args):
+  eprint (*args)
+  sys.exit (1)
+
 def main():
   # parse args
   parser = argparse.ArgumentParser (description = "Generate test case Makefile for Imagewmark.")
@@ -14,10 +20,10 @@ def main():
   output_dir = os.path.abspath (args.outputdir)
   imagedir = os.path.abspath (args.imagedir)
   if not os.path.isdir (imagedir):
-    print (f"Error: Directory not found: {imagedir}", file = sys.stderr)
-    sys.exit (1)
+    die (f"error: Directory not found: {imagedir}")
   # clear and mkdir the output_dir
   if args.clean and os.path.isdir (output_dir):
+    eprint ("cleaning dir:", output_dir)
     shutil.rmtree (output_dir)
   os.makedirs (output_dir, exist_ok = True)
   # generate and configure Makefile
@@ -27,7 +33,28 @@ def main():
     content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
     dst.write (content)
   # Placeholder for test generation logic
-  print (f"Generating tests using images from: {imagedir} into {output_dir}")
+  eprint ("adding Makefile:", outmk)
+  # crawl imagedir for files with an image extension and copy all images into output_dir + '/inputs/'
+  image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+  # TODO: copy images *without* image extension
+  inputsdir = os.path.join (output_dir, 'inputs')
+  os.makedirs (inputsdir, exist_ok = True)
+  imgcounter = 1
+  for root, dirs, files in os.walk (imagedir):
+    for filename in files:
+      if any (filename.lower().endswith (ext) for ext in image_extensions):
+        dstname = os.path.join (inputsdir, 'img%05u' % imgcounter)
+        imgcounter += 1
+        eprint ("adding image:", dstname)
+        shutil.copy2 (os.path.join (root, filename), dstname)
+        # TODO: use link if image is small
+
+  # generate attacks.inc that lists all attacks
+  attacks_inc_path = os.path.join (output_dir, 'attacks.inc')
+  eprint ("adding Makefile:", attacks_inc_path)
+  with open (attacks_inc_path, 'w') as f:
+    f.write ('ATTACKS = a b c\n')
+  # TODO: generate attacks.inc that lists all attacks
 
 if __name__ == "__main__":
   main()
