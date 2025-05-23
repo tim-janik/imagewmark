@@ -17,11 +17,6 @@ __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
 MAGICK_CONFIGURE_PATH != pwd
 export MAGICK_CONFIGURE_PATH
 
-IMAGEDIR	?= ../input
-#IMAGEDIR	:= $(abspath $(IMAGEDIR))
-ABS_INPUT_IMAGES := $(wildcard $(IMAGEDIR)/*.* $(IMAGEDIR)/*/*.* $(IMAGEDIR)/*/*/*.* $(IMAGEDIR)/*/*/*/*.*)
-REL_INPUT_IMAGES := $(ABS_INPUT_IMAGES:$(IMAGEDIR)/%=%)
-
 # == help ==
 help:
 	@echo 'Make targets:'
@@ -41,7 +36,12 @@ $(MAKEFILE): check-nproc
 .PHONY: check-nproc
 
 # == inputs/ ==
+IMAGEDIR ?=
+ifeq ($(strip $(IMAGEDIR)),)
+INPUTS := $(wildcard inputs/*)
+else
 INPUTS :=
+IMAGEDIR_GLOB := $(wildcard $(IMAGEDIR)/*.* $(IMAGEDIR)/*/*.* $(IMAGEDIR)/*/*/*.* $(IMAGEDIR)/*/*/*/*.*)
 define INPUTS_STEM_LINK
 INPUTS += inputs/$$(basename $1)
 inputs/$$(basename $1): $(1:%=$$(IMAGEDIR)/%)
@@ -49,8 +49,9 @@ inputs/$$(basename $1): $(1:%=$$(IMAGEDIR)/%)
 	$Q mkdir -p $$(dir $$@)
 	$Q test -L $$@ || ln -sv $$(abspath $$<) $$@
 endef
-$(foreach I, $(REL_INPUT_IMAGES), $(eval $(call INPUTS_STEM_LINK, $I)))
+$(foreach I, $(IMAGEDIR_GLOB), $(eval $(call INPUTS_STEM_LINK, $I)))
 .NOTINTERMEDIATE: $(INPUTS)
+endif
 
 # == wmarked/ ==
 WMARKED_IMAGES := $(INPUTS:inputs/%=wmarked/%)
@@ -152,7 +153,6 @@ RESULT_REPORTS += fails.txt
 all: $(RESULT_REPORTS)
 	$(QGEN)
 	$Q echo "IMAGEDIR:        " $(IMAGEDIR)
-	$Q echo "REL_INPUT_IMAGES:" $(words $(REL_INPUT_IMAGES))
 	$Q echo "WMARKED_IMAGES:  " $(words $(WMARKED_IMAGES))
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
