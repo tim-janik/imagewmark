@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Gradient -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8Ab740"/>
+      <stop offset="100%" stop-color="#F7D060"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="100%" stop-color="#CC0000"/>
+    </linearGradient>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A2D9C6"/>
+      <stop offset="100%" stop-color="#007BFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#grad1)"/>
+
+  <circle cx="60" cy="190" r="40"
+          fill="url(#grad2)"
+          stroke="darkred" stroke-width="3"/>
+  <polygon points="320,60 290,120 350,120"
+	   transform="translate(0 100)"
+           fill="url(#grad3)"
+           stroke="#112277" stroke-width="3"/>
+  <rect x="60" y="100" width="270" height="190"
+        fill="#a5a4a2" stroke="black" stroke-width="3"
+        fill-opacity="0.5"/>
+
+  <g transform="translate(120 190)">
+    <text x="0" y="0" text-anchor="start" dominant-baseline="central"
+     font-family="Serif" font-size="24" font-weight="bold"
+     fill="#f0f0f0">
+      <tspan x="0" dy="0"    >Imagewmark</tspan>
+      <tspan x="0" dy="1.2em">Test Image</tspan>
+    </text>
+  </g>
+
+</svg>
