@@ -35,8 +35,7 @@ def main():
   # Placeholder for test generation logic
   eprint ("adding Makefile:", outmk)
   # crawl imagedir for files with an image extension and copy all images into output_dir + '/inputs/'
-  image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
-  # TODO: copy images *without* image extension
+  image_extensions = ['.gif', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp']
   inputsdir = os.path.join (output_dir, 'inputs')
   os.makedirs (inputsdir, exist_ok = True)
   imgcounter = 1
@@ -44,10 +43,10 @@ def main():
     for filename in files:
       if any (filename.lower().endswith (ext) for ext in image_extensions):
         dstname = os.path.join (inputsdir, 'img%05u' % imgcounter)
-        imgcounter += 1
+        imgcounter += 1 # symlink/copy images without image extension
         eprint ("adding image:", dstname)
-        shutil.copy2 (os.path.join (root, filename), dstname)
-        # TODO: use link if image is small
+        # TODO: rescale if image is beyond 2k, for now always link
+        os.symlink (os.path.join (root, filename), dstname)
 
   # generate attacks.inc that lists all attacks
   attacks_inc_path = os.path.join (output_dir, 'attacks.inc')
