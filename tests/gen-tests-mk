@@ -15,6 +15,7 @@ def main():
   parser = argparse.ArgumentParser (description = "Generate test case Makefile for Imagewmark.")
   parser.add_argument ("imagedir", help = "Directory containing input images.")
   parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
+  parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
   args = parser.parse_args()
   output_dir = os.path.abspath (args.outputdir)
@@ -41,6 +42,8 @@ def main():
   imgcounter = 1
   for root, dirs, files in os.walk (imagedir):
     for filename in files:
+      if args.max_count > 0 and imgcounter > args.max_count:
+        break
       if any (filename.lower().endswith (ext) for ext in image_extensions):
         dstname = os.path.join (inputsdir, 'img%05u' % imgcounter)
         imgcounter += 1 # symlink/copy images without image extension
