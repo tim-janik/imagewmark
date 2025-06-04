@@ -2,27 +2,20 @@
 # Makefile for imagewmark test runs
 
 all:
+SHELL		:= /bin/bash
+.SHELLFLAGS	:= -Eeuo pipefail -c
 MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
 QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && echo "$$QOUT"; }; QECHO
-SHELL		:= /bin/bash
-.SHELLFLAGS	:= -Eeuo pipefail -c
-TOPDIR		:= $(dir $(MAKEFILE))/..
-SRCDIR		:= $(TOPDIR)/src
-TESTDIR		:= $(TOPDIR)/tests
+SRCDIR		?= $(dir $(MAKEFILE))/..
+WATERMARK	?= fedcba98765432100123456789abcdef
 ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
-WATERMARK	:= fedcba98765432100123456789abcdef
 __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
 
 MAGICK_CONFIGURE_PATH != pwd
 export MAGICK_CONFIGURE_PATH
-
-IMAGEDIR	?= ../input
-#IMAGEDIR	:= $(abspath $(IMAGEDIR))
-ABS_INPUT_IMAGES := $(wildcard $(IMAGEDIR)/*.* $(IMAGEDIR)/*/*.* $(IMAGEDIR)/*/*/*.* $(IMAGEDIR)/*/*/*/*.*)
-REL_INPUT_IMAGES := $(ABS_INPUT_IMAGES:$(IMAGEDIR)/%=%)
 
 # == help ==
 help:
@@ -43,7 +36,12 @@ $(MAKEFILE): check-nproc
 .PHONY: check-nproc
 
 # == inputs/ ==
+IMAGEDIR ?=
+ifeq ($(strip $(IMAGEDIR)),)
+INPUTS := $(wildcard inputs/*)
+else
 INPUTS :=
+IMAGEDIR_GLOB := $(wildcard $(IMAGEDIR)/*.* $(IMAGEDIR)/*/*.* $(IMAGEDIR)/*/*/*.* $(IMAGEDIR)/*/*/*/*.*)
 define INPUTS_STEM_LINK
 INPUTS += inputs/$$(basename $1)
 inputs/$$(basename $1): $(1:%=$$(IMAGEDIR)/%)
@@ -51,8 +49,9 @@ inputs/$$(basename $1): $(1:%=$$(IMAGEDIR)/%)
 	$Q mkdir -p $$(dir $$@)
 	$Q test -L $$@ || ln -sv $$(abspath $$<) $$@
 endef
-$(foreach I, $(REL_INPUT_IMAGES), $(eval $(call INPUTS_STEM_LINK, $I)))
+$(foreach I, $(IMAGEDIR_GLOB), $(eval $(call INPUTS_STEM_LINK, $I)))
 .NOTINTERMEDIATE: $(INPUTS)
+endif
 
 # == wmarked/ ==
 WMARKED_IMAGES := $(INPUTS:inputs/%=wmarked/%)
@@ -80,23 +79,23 @@ jpg70			= convert $<			-quality 70		$@.jpg && mv $@.jpg $@
 jpg90			= convert $<			-quality 90		$@.jpg && mv $@.jpg $@
 noise			= convert $<	-seed 123 +noise Gaussian		$@.png && mv $@.png $@
 noisej90		= convert $<	-seed 123 +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
-rot5to15j90		= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<) --attack "rotate:5:15|jpeg:90" $@.png && mv $@.png $@
-rot0to180j90		= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<) --attack "rotate:0:180|jpeg:90" $@.png && mv $@.png $@
+rot5to15j90		= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<) --attack "rotate:5:15|jpeg:90" $@.png && mv $@.png $@
+rot0to180j90		= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<) --attack "rotate:0:180|jpeg:90" $@.png && mv $@.png $@
 crop75j90		= convert $< -gravity Center -crop 75x75%+0+0 -quality 90	$@.jpg && mv $@.jpg $@
 crop50scale200j90	= convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	$@.jpg && mv $@.jpg $@
 noisecrop50scale200j90	= convert $< -seed 123 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	$@.jpg && mv $@.jpg $@
 noise2crop50scale200j90	= convert $< -seed 123 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% -seed 456 +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
-j90cropscaleto512j90seed1 = $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90cropscaleto512j90seed2 = $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):2 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90cropscaleto512j90seed3 = $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90cropscaleto512j70seed1 = $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90cropscaleto512j70seed2 = $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):2 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90cropscaleto512j70seed3 = $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90scaleto512j90	= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90scaleto512j70	= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90scaleto768j90	= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:90" $@.png && mv $@.png $@
-j90scaleto768j70	= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:70" $@.png && mv $@.png $@
-j90scaleto768j50	= $(SRCDIR)/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:50" $@.png && mv $@.png $@
+j90cropscaleto512j90seed1 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
+j90cropscaleto512j90seed2 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):2 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
+j90cropscaleto512j90seed3 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
+j90cropscaleto512j70seed1 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
+j90cropscaleto512j70seed2 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):2 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
+j90cropscaleto512j70seed3 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
+j90scaleto512j90	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:90" $@.png && mv $@.png $@
+j90scaleto512j70	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:70" $@.png && mv $@.png $@
+j90scaleto768j90	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:90" $@.png && mv $@.png $@
+j90scaleto768j70	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:70" $@.png && mv $@.png $@
+j90scaleto768j50	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:50" $@.png && mv $@.png $@
 define ATTACK_RULE
 $(1:%=attack/%)/%: wmarked/%
 	$$(QECHO) $1 $$@
@@ -126,24 +125,24 @@ extract/%.json: attack/%
 
 # == pandoc rules ==
 REPORT_FORMAT := markdown+compact_definition_lists+autolink_bare_uris+emoji+lists_without_preceding_blankline-smart-raw_tex-raw_html
-%.html: %.md $(TESTDIR)/Makefile
+%.html: %.md $(MAKEFILE)
 	$(QGEN)
 	$Q pandoc -f "$(REPORT_FORMAT)" $< -o $@.tmp.html
 	$Q mv $@.tmp.html $@
-%.pdf: %.md $(TESTDIR)/Makefile
+%.pdf: %.md $(MAKEFILE)
 	$(QGEN)
 	$Q pandoc -f "$(REPORT_FORMAT)" $< -o $@.tmp.pdf
 	$Q mv $@.tmp.pdf $@
 
 # == reports ==
-report.md: $(EXTRACT_FILES) $(TESTDIR)/Makefile $(TESTDIR)/report.py
+report.md: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
-	$Q $(TESTDIR)/report.py $(WATERMARK) >$@.tmp
+	$Q $(SRCDIR)/tests/report.py $(WATERMARK) >$@.tmp
 	$Q mv $@.tmp $@
 RESULT_REPORTS += report.html report.pdf
-flat.txt: $(EXTRACT_FILES) $(TESTDIR)/Makefile $(TESTDIR)/report.py
+flat.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
-	$Q $(TESTDIR)/report.py --flat $(WATERMARK) >> $@.tmp
+	$Q $(SRCDIR)/tests/report.py --flat $(WATERMARK) >> $@.tmp
 	$Q mv $@.tmp $@
 RESULT_REPORTS += flat.txt
 fails.txt: flat.txt
@@ -154,7 +153,6 @@ RESULT_REPORTS += fails.txt
 all: $(RESULT_REPORTS)
 	$(QGEN)
 	$Q echo "IMAGEDIR:        " $(IMAGEDIR)
-	$Q echo "REL_INPUT_IMAGES:" $(words $(REL_INPUT_IMAGES))
 	$Q echo "WMARKED_IMAGES:  " $(words $(WMARKED_IMAGES))
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
