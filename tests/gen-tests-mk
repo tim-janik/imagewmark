@@ -1,0 +1,62 @@
+#!/usr/bin/env -S python3 -b -B
+# -*- python -*-
+import sys, os, re, shutil
+import argparse
+SRCDIR = os.path.dirname (os.path.dirname (os.path.abspath (__file__)))
+
+def eprint (*args):
+  print ('%s:' % sys.argv[0], *args, file = sys.stderr)
+def die (*args):
+  eprint (*args)
+  sys.exit (1)
+
+def main():
+  # parse args
+  parser = argparse.ArgumentParser (description = "Generate test case Makefile for Imagewmark.")
+  parser.add_argument ("imagedir", help = "Directory containing input images.")
+  parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
+  parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
+  parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
+  args = parser.parse_args()
+  output_dir = os.path.abspath (args.outputdir)
+  imagedir = os.path.abspath (args.imagedir)
+  if not os.path.isdir (imagedir):
+    die (f"error: Directory not found: {imagedir}")
+  # clear and mkdir the output_dir
+  if args.clean and os.path.isdir (output_dir):
+    eprint ("cleaning dir:", output_dir)
+    shutil.rmtree (output_dir)
+  os.makedirs (output_dir, exist_ok = True)
+  # generate and configure Makefile
+  inmk, outmk = os.path.join (SRCDIR, 'tests', 'Makefile'), os.path.join (output_dir, 'Makefile')
+  with open (inmk, 'r+', encoding='utf-8') as src, open (outmk, 'w', encoding='utf-8') as dst:
+    content = src.read()
+    content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
+    dst.write (content)
+  # Placeholder for test generation logic
+  eprint ("adding Makefile:", outmk)
+  # crawl imagedir for files with an image extension and copy all images into output_dir + '/inputs/'
+  image_extensions = ['.gif', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp']
+  inputsdir = os.path.join (output_dir, 'inputs')
+  os.makedirs (inputsdir, exist_ok = True)
+  imgcounter = 1
+  for root, dirs, files in os.walk (imagedir):
+    for filename in files:
+      if args.max_count > 0 and imgcounter > args.max_count:
+        break
+      if any (filename.lower().endswith (ext) for ext in image_extensions):
+        dstname = os.path.join (inputsdir, 'img%05u' % imgcounter)
+        imgcounter += 1 # symlink/copy images without image extension
+        eprint ("adding image:", dstname)
+        # TODO: rescale if image is beyond 2k, for now always link
+        os.symlink (os.path.join (root, filename), dstname)
+
+  # generate attacks.inc that lists all attacks
+  attacks_inc_path = os.path.join (output_dir, 'attacks.inc')
+  eprint ("adding Makefile:", attacks_inc_path)
+  with open (attacks_inc_path, 'w') as f:
+    f.write ('ATTACKS = a b c\n')
+  # TODO: generate attacks.inc that lists all attacks
+
+if __name__ == "__main__":
+  main()
