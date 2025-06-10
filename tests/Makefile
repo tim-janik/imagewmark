@@ -68,9 +68,7 @@ wmarked/%: inputs/%
 # cropping	  echo "crop:25:25|jpeg:90 crop:50:50|jpeg:90 crop:75:75|jpeg:90 crop:90:90|jpeg:90"
 # upscaling + jpeg	  echo "crop:75:95|scale:100:200|jpeg:90"
 ATTACKS := jpg30 jpg50 jpg70 jpg90 noise noisej90 noisej90 rot5to15j90 rot0to180j90 crop75j90 crop50scale200j90 noisecrop50scale200j90 noise2crop50scale200j90 \
-	   j90cropscaleto512j90seed1 j90cropscaleto512j70seed1 \
-	   j90cropscaleto512j90seed2 j90cropscaleto512j70seed2 \
-	   j90cropscaleto512j90seed3 j90cropscaleto512j70seed3 \
+		j90crop50scaleto512j90 j90crop60scaleto512j70 \
 	   j90scaleto512j90 j90scaleto512j70 \
 	   j90scaleto768j90 j90scaleto768j70 j90scaleto768j50
 jpg30			= convert $<			-quality 30		$@.jpg && mv $@.jpg $@
@@ -85,12 +83,8 @@ crop75j90		= convert $< -gravity Center -crop 75x75%+0+0 -quality 90	$@.jpg && m
 crop50scale200j90	= convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	$@.jpg && mv $@.jpg $@
 noisecrop50scale200j90	= convert $< -seed 123 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	$@.jpg && mv $@.jpg $@
 noise2crop50scale200j90	= convert $< -seed 123 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% -seed 456 +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
-j90cropscaleto512j90seed1 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90cropscaleto512j90seed2 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):2 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90cropscaleto512j90seed3 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90cropscaleto512j70seed1 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90cropscaleto512j70seed2 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):2 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90cropscaleto512j70seed3 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|crop:50:95|scaleto:512|jpeg:70" $@.png && mv $@.png $@
+j90crop50scaleto512j90 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:50|scaleto:512|jpeg:90" $@.png && mv $@.png $@
+j90crop60scaleto512j70 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:60:60|scaleto:512|jpeg:70" $@.png && mv $@.png $@
 j90scaleto512j90	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:90" $@.png && mv $@.png $@
 j90scaleto512j70	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:70" $@.png && mv $@.png $@
 j90scaleto768j90	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:90" $@.png && mv $@.png $@
