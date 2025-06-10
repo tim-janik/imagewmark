@@ -4,8 +4,9 @@ import argparse
 import cv2
 import numpy as np
 import tempfile
-import sys
+import sys, os
 import random
+import hashlib
 
 quiet = False
 def print_attack (s):
@@ -144,13 +145,17 @@ Example:
 wmtool.py --attack 'crop:75:95|scale:75:125|jpeg:90' in.png out.png
 """
 
+# Hash string to an unsigned 64-bit integer
+def hash_to_uint64 (s):
+    return int (hashlib.sha256 (s.encode()).hexdigest()[:16], 16)
+
 # Setup CLI parsr for embedding
 def cli_parser():
   p = argparse.ArgumentParser (description = blurb, epilog = epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
   a = p.add_argument
-  a ('inputimage', type = str,
+  a ('inputimage', type=str, nargs='?', default=None,
      help = "Source image")
-  a ('outputimage', type = str,
+  a ('outputimage', type=str, nargs='?', default=None,
      help = "Destination image")
   a ('--scale', default = False, action = 'store_true',
      help = "Print information about progress")
@@ -160,6 +165,8 @@ def cli_parser():
      help = "seed random number generator (for reproducable random numbers)")
   a ('--attack',
      help = "a list of attacks, seperated by '|'")
+  a ('--hash', type = str,
+     help = "Hash the given string and print as an unsigned 64-bit integer")
   a ('-q', '--quiet',
      default = False, action = 'store_true',
      help = "Reduce output verbosity")
@@ -175,9 +182,22 @@ def load_bgr_image (filename):
   return face
 
 # parse args
-args = cli_parser().parse_args()
+parser = cli_parser()
+args = parser.parse_args()
 quiet = args.quiet
 
+if args.hash is not None:
+  hash_value = hash_to_uint64 (args.hash)
+  print (hash_value)
+  sys.exit(0) # Exit immediately after printing the hash
+
+# If --hash was not used, inputimage and outputimage are required.
+if args.inputimage is None or args.outputimage is None:
+    print("Error: inputimage and outputimage arguments are required when --hash is not specified.", file=sys.stderr)
+    parser.print_help (sys.stderr)
+    sys.exit(1)
+
+# Proceed with image processing if hash was not the primary operation
 face = load_bgr_image (args.inputimage)
 if (args.verbose):
   print ("Input Image:", face.shape, face.min(), '...', face.max());
