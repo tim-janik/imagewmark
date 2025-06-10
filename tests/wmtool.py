@@ -4,7 +4,7 @@ import argparse
 import cv2
 import numpy as np
 import tempfile
-import sys
+import sys, os
 import random
 import hashlib
 
