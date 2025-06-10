@@ -157,7 +157,7 @@ all: $(RESULT_REPORTS)
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
-	$Q ls -l $(RESULT_REPORTS)
+	$Q ls -l $(abspath $(RESULT_REPORTS))
 
 # == test ==
 test: all
