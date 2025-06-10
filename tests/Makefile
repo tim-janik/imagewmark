@@ -10,6 +10,7 @@ QGEN		 = @echo '  GEN     ' $@
 QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && echo "$$QOUT"; }; QECHO
 SRCDIR		?= $(dir $(MAKEFILE))/..
 WATERMARK	?= fedcba98765432100123456789abcdef
+MAINSEED	?= ddc1af1c64eedbd262dc8830d15b202a85185a47ddbdcd04e38f7743952c1253
 ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
 __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
@@ -26,6 +27,7 @@ help:
 	@echo 'Invocation:'
 	@echo '  make V=1		- Enable verbose output from MAKE and subcommands'
 	@echo '  make IMAGEDIR=..	- Specifc directory with images for testing'
+	@echo '  make MAINSEED=<string>	- Alter main seed for randomized tests'
 
 # == check-nproc ==
 check-nproc:
@@ -75,26 +77,26 @@ jpg30			= convert $<			-quality 30		$@.jpg && mv $@.jpg $@
 jpg50			= convert $<			-quality 50		$@.jpg && mv $@.jpg $@
 jpg70			= convert $<			-quality 70		$@.jpg && mv $@.jpg $@
 jpg90			= convert $<			-quality 90		$@.jpg && mv $@.jpg $@
-noise			= convert $<	-seed 123 +noise Gaussian		$@.png && mv $@.png $@
-noisej90		= convert $<	-seed 123 +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
-rot5to15j90		= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<) --attack "rotate:5:15|jpeg:90" $@.png && mv $@.png $@
-rot0to180j90		= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<) --attack "rotate:0:180|jpeg:90" $@.png && mv $@.png $@
+noise			= convert $<	-seed $1 +noise Gaussian		$@.png && mv $@.png $@
+noisej90		= convert $<	-seed $1 +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
+rot5to15j90		= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:5:15|jpeg:90" $< $@.png && mv $@.png $@
+rot0to180j90		= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:0:180|jpeg:90" $< $@.png && mv $@.png $@
 crop75j90		= convert $< -gravity Center -crop 75x75%+0+0 -quality 90	$@.jpg && mv $@.jpg $@
 crop50scale200j90	= convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	$@.jpg && mv $@.jpg $@
-noisecrop50scale200j90	= convert $< -seed 123 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	$@.jpg && mv $@.jpg $@
-noise2crop50scale200j90	= convert $< -seed 123 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% -seed 456 +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
-j90crop50scaleto512j90 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:50:50|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90crop60scaleto512j70 = $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):1 --attack "jpeg:90|crop:60:60|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90scaleto512j90	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:90" $@.png && mv $@.png $@
-j90scaleto512j70	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:512|jpeg:70" $@.png && mv $@.png $@
-j90scaleto768j90	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:90" $@.png && mv $@.png $@
-j90scaleto768j70	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:70" $@.png && mv $@.png $@
-j90scaleto768j50	= $(SRCDIR)/tests/wmtool.py $< --seed $(shell basename $<):3 --attack "jpeg:90|scaleto:768|jpeg:50" $@.png && mv $@.png $@
+noisecrop50scale200j90	= convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	$@.jpg && mv $@.jpg $@
+noise2crop50scale200j90	= convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
+j90crop50scaleto512j90  = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:50:50|scaleto:512|jpeg:90" $< $@.png && mv $@.png $@
+j90crop60scaleto512j70  = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:60:60|scaleto:512|jpeg:70" $< $@.png && mv $@.png $@
+j90scaleto512j90	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:90" $< $@.png && mv $@.png $@
+j90scaleto512j70	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:70" $< $@.png && mv $@.png $@
+j90scaleto768j90	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:90" $< $@.png && mv $@.png $@
+j90scaleto768j70	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:70" $< $@.png && mv $@.png $@
+j90scaleto768j50	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:50" $< $@.png && mv $@.png $@
 define ATTACK_RULE
 $(1:%=attack/%)/%: wmarked/%
 	$$(QECHO) $1 $$@
 	$Q mkdir -p $$(dir $$@)
-	$Q $$(call $(1), $$<, $$@)
+	$Q SEED=`$(SRCDIR)/tests/wmtool.py --hash '$(MAINSEED):$$@'` && $$(call $(1), $$$$SEED)
 ATTACK_IMAGES += $$(WMARKED_IMAGES:wmarked/%=$(1:%=attack/%)/%)
 endef
 $(foreach A, $(ATTACKS), $(eval $(call ATTACK_RULE, $(A))))
@@ -148,6 +150,7 @@ all: $(RESULT_REPORTS)
 	$(QGEN)
 	$Q echo "IMAGEDIR:        " $(IMAGEDIR)
 	$Q echo "WMARKED_IMAGES:  " $(words $(WMARKED_IMAGES))
+	$Q echo "MAINSEED:        " $(MAINSEED)
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
