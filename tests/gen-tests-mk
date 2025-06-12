@@ -1,7 +1,7 @@
 #!/usr/bin/env -S python3 -b -B
 # -*- python -*-
 import sys, os, re, shutil
-import argparse
+import argparse, random
 SRCDIR = os.path.dirname (os.path.dirname (os.path.abspath (__file__)))
 
 def eprint (*args):
@@ -17,7 +17,11 @@ def main():
   parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
   parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
+  parser.add_argument ("--seed", default = None, help = "Seed for random number generators")
   args = parser.parse_args()
+  if args.seed:
+    random.seed (args.seed)
+    # np.random.seed (int (args.seed))
   output_dir = os.path.abspath (args.outputdir)
   imagedir = os.path.abspath (args.imagedir)
   if not os.path.isdir (imagedir):
@@ -45,6 +49,10 @@ def main():
       if any (filename.lower().endswith (ext) for ext in image_extensions):
         full_path = os.path.join (root, filename)
         input_image_filepaths.append (full_path)
+
+  # shuffle input files to ensure random selection
+  random.shuffle (input_image_filepaths)
+
   # copy all images into output_dir + '/inputs/'
   inputsdir = os.path.join (output_dir, 'inputs')
   os.makedirs (inputsdir, exist_ok = True)
