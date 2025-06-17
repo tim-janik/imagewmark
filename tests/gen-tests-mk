@@ -2,6 +2,7 @@
 # -*- python -*-
 import sys, os, re, shutil
 import argparse, random
+import numpy as np
 SRCDIR = os.path.dirname (os.path.dirname (os.path.abspath (__file__)))
 
 def eprint (*args):
@@ -17,11 +18,12 @@ def main():
   parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
   parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
-  parser.add_argument ("--seed", default = None, help = "Seed for random number generators")
+  parser.add_argument ("--seed", type = int, default = None, help = "Seed for random number generators")
   args = parser.parse_args()
-  if args.seed:
-    random.seed (args.seed)
-    # np.random.seed (int (args.seed))
+  seed = args.seed if args.seed is not None else random.randint (0, 2**32 - 1)
+  random.seed (seed)
+  np.random.seed (seed)
+  eprint (f"SEED: {seed}")
   output_dir = os.path.abspath (args.outputdir)
   imagedir = os.path.abspath (args.imagedir)
   if not os.path.isdir (imagedir):
