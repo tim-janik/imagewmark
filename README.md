@@ -29,7 +29,7 @@ To build and run imagewmark, the following package dependencies need to be provi
 	# Packages needed for the C++ helpers and Python routines
 	apt install build-essential libgcrypt20-dev libopenimageio-dev \
 	  python3-numpy python3-scipy python3-matplotlib python3-imageio \
-	  python3-opencv python3-skimage
+	  python3-opencv python3-skimage libopencv-dev
 	# Build C++ helpers
 	make
 	# Test invocation
