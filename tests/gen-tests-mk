@@ -171,12 +171,12 @@ def main():
       break
 
   # generate attacks.inc that lists all attacks
-  attacks_inc_path = os.path.join (output_dir, 'attacks.inc')
-  eprint ("adding Makefile:", attacks_inc_path)
-  with open (attacks_inc_path, 'w') as f:
+  randomsize_inc_path = os.path.join (output_dir, 'randomsize.inc')
+  eprint ("adding Makefile:", randomsize_inc_path)
+  with open (randomsize_inc_path, 'w') as f:
     # Assign target-specific ATTACK_SIZE variable for each image
     for img, sz in target_sizes:
-      f.write (f'{img}: ATTACK_SIZE := {sz}\n')
+      f.write (f'$(ATTACK_RANDOMSIZE)/{img}: RANDOMSIZE := {sz}\n')
 
 if __name__ == "__main__":
   main()
