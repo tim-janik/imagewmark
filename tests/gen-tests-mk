@@ -152,14 +152,17 @@ def main():
   # draw randomized resolutions
   resolution_min, resolution_max, resolution_pdf, resolution_cdf, resolution_icdf = setup_icdf ()
   resolutions2d = generate_resolutions (resolution_icdf, resolution_min, resolution_max, len (input_image_filepaths))
+  target_sizes = []
 
   # copy all images into output_dir + '/inputs/'
   inputsdir = os.path.join (output_dir, 'inputs')
   os.makedirs (inputsdir, exist_ok = True)
   imgcounter = 1
   for imgidx, src_image_path in enumerate (input_image_filepaths):
-    dstname = os.path.join (inputsdir, 'img%05u' % imgcounter)
+    imgname = 'img%05u' % imgcounter
+    dstname = os.path.join (inputsdir, imgname)
     rw, rh = resolutions2d[imgidx]
+    target_sizes.append ((imgname, f"{rw}x{rh}"))
     eprint ("adding image:", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
     # TODO: rescale if image is beyond 2k, for now always link
     os.symlink (src_image_path, dstname)
@@ -171,8 +174,9 @@ def main():
   attacks_inc_path = os.path.join (output_dir, 'attacks.inc')
   eprint ("adding Makefile:", attacks_inc_path)
   with open (attacks_inc_path, 'w') as f:
-    f.write ('ATTACKS = a b c\n')
-  # TODO: generate attacks.inc that lists all attacks
+    # Assign target-specific ATTACK_SIZE variable for each image
+    for img, sz in target_sizes:
+      f.write (f'{img}: ATTACK_SIZE := {sz}\n')
 
 if __name__ == "__main__":
   main()
