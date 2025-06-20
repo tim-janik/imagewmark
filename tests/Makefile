@@ -70,9 +70,10 @@ wmarked/%: inputs/%
 # cropping	  echo "crop:25:25|jpeg:90 crop:50:50|jpeg:90 crop:75:75|jpeg:90 crop:90:90|jpeg:90"
 # upscaling + jpeg	  echo "crop:75:95|scale:100:200|jpeg:90"
 ATTACKS := jpg30 jpg50 jpg70 jpg90 noise noisej90 noisej90 rot5to15j90 rot0to180j90 crop75j90 crop50scale200j90 noisecrop50scale200j90 noise2crop50scale200j90 \
+		j90randomsizej80 \
 		j90crop50scaleto512j90 j90crop60scaleto512j70 \
-	   j90scaleto512j90 j90scaleto512j70 \
-	   j90scaleto768j90 j90scaleto768j70 j90scaleto768j50
+		j90scaleto512j90 j90scaleto512j70 \
+		j90scaleto768j90 j90scaleto768j70 j90scaleto768j50
 jpg30			= convert $<			-quality 30		$@.jpg && mv $@.jpg $@
 jpg50			= convert $<			-quality 50		$@.jpg && mv $@.jpg $@
 jpg70			= convert $<			-quality 70		$@.jpg && mv $@.jpg $@
@@ -85,6 +86,7 @@ crop75j90		= convert $< -gravity Center -crop 75x75%+0+0 -quality 90	$@.jpg && m
 crop50scale200j90	= convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	$@.jpg && mv $@.jpg $@
 noisecrop50scale200j90	= convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	$@.jpg && mv $@.jpg $@
 noise2crop50scale200j90	= convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% +noise Gaussian -quality 90	$@.jpg && mv $@.jpg $@
+j90randomsizej80	= convert $< -quality 90 $@.1.jpg && convert $@.1.jpg -resize $(RANDOMSIZE) -quality 80 $@.2.jpg && rm $@.1.jpg && mv $@.2.jpg $@
 j90crop50scaleto512j90  = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:50:50|scaleto:512|jpeg:90" $< $@.png && mv $@.png $@
 j90crop60scaleto512j70  = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:60:60|scaleto:512|jpeg:70" $< $@.png && mv $@.png $@
 j90scaleto512j90	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:90" $< $@.png && mv $@.png $@
@@ -101,6 +103,10 @@ ATTACK_IMAGES += $$(WMARKED_IMAGES:wmarked/%=$(1:%=attack/%)/%)
 endef
 $(foreach A, $(ATTACKS), $(eval $(call ATTACK_RULE, $(A))))
 .NOTINTERMEDIATE: $(ATTACK_IMAGES)
+
+# == Random Size Configuration ==
+ATTACK_RANDOMSIZE := attack/j90randomsizej80
+-include randomsize.inc
 
 # == attacks ==
 attacks: $(ATTACK_IMAGES)

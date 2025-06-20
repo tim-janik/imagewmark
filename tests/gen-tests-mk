@@ -2,13 +2,108 @@
 # -*- python -*-
 import sys, os, re, shutil
 import argparse, random
+import numpy as np
+from scipy.interpolate import CubicSpline
+from itertools import accumulate
 SRCDIR = os.path.dirname (os.path.dirname (os.path.abspath (__file__)))
 
 def eprint (*args):
   print ('%s:' % sys.argv[0], *args, file = sys.stderr)
+def dprint (*args):
+  True and print (*args, file = sys.stderr)
 def die (*args):
   eprint (*args)
   sys.exit (1)
+
+def setup_icdf (resolution_table = None):
+  """
+  Sets up the Inverse Cumulative Distribution Function (ICDF) based on the resolution table.
+
+  Args:
+    resolution_table: A list of tuples, where each tuple contains (resolution, weight).
+
+  Returns:
+    A tuple containing:
+      - resolution_min: The minimum resolution.
+      - resolution_max: The maximum resolution.
+      - resolution_pdf: The Probability Density Function.
+      - resolution_cdf: The Cumulative Distribution Function.
+      - resolution_icdf: The Inverse Cumulative Distribution Function.
+  """
+  # Probable attack resolutions
+  resolution_table = resolution_table or [
+    ( 296,   0),
+    ( 320,  10),
+    ( 400,  56),
+    #( 496, 283),
+    ( 500, 250),
+    #( 512, 698),
+    #( 600, 445),
+    ( 640, 220),
+    ( 768, 150),
+    ( 800,  62),
+    ( 960, 150),
+    (1024, 132),
+    (1200, 112),
+    (1400, 215),
+    (1600, 131),
+    (1920,  70),
+    (2048,  30),
+  ]
+  dprint ('TABLE=', resolution_table)
+  assert all (resolution_table[i][0] < resolution_table[i+1][0] for i in range (len (resolution_table) -1))
+  resolution_min = resolution_table[0][0]
+  resolution_max = resolution_table[-1][0]
+  resolution_total_weight = sum (item[1] for item in resolution_table)
+  # Normalize probabilities from resolution_table
+  resolution_pdf = [(item[0], item[1] / resolution_total_weight) for item in resolution_table]
+  dprint ('PDF=', resolution_pdf)
+  # Create CDF from PDF
+  resolution_cdf = list (accumulate (resolution_pdf, lambda acc, pair: (pair[0], acc[1] + pair[1])))
+  dprint ('CDF=', resolution_cdf)
+  assert resolution_cdf[0][1] == 0.0 and abs (resolution_cdf[-1][1] - 1.0) < 1e-7
+  # Inverse CDF
+  resolution_icdf = list (map (lambda pair: (pair[1], pair[0]), resolution_cdf))
+  dprint ('ICDF=', resolution_icdf)
+  assert all (resolution_icdf[i][0] < resolution_icdf[i+1][0] for i in range (len (resolution_icdf) -1))
+  return resolution_min, resolution_max, resolution_pdf, resolution_cdf, resolution_icdf
+
+def generate_resolutions (resolution_icdf, resolution_min, resolution_max, num_samples, min_ratio = 9.0 / 16.0, max_ratio = 16.0 / 9.0):
+  """
+  Generates a list of resolutions based on the ICDF using cubic spline interpolation.
+
+  Args:
+    resolution_icdf: The inverse cumulative distribution function data (list of (prob, reso) tuples).
+    resolution_min: The minimum allowed resolution.
+    resolution_max: The maximum allowed resolution.
+    num_samples: The number of resolutions to generate.
+
+  Returns:
+    A numpy array of generated resolutions.
+  """
+  # Extract probabilities (x) and resolutions (y) for interpolation from the ICDF
+  icdf_probs = [item[0] for item in resolution_icdf]
+  icdf_resos = [item[1] for item in resolution_icdf]
+
+  # Create a cubic spline interpolation function
+  # bc_type='natural' helps handle boundary conditions smoothly
+  cs = CubicSpline (icdf_probs, icdf_resos, bc_type = 'natural')
+
+  # Generate random probabilities between 0.0 and 1.0
+  random_probs = [random.random() for _ in range (num_samples)]
+
+  # Use the interpolation function to get resolutions for the random probabilities
+  generated_resolutions = cs (random_probs)
+
+  # Ensure generated resolutions are within the min/max bounds (interpolation might slightly exceed)
+  generated_resolutions = np.clip (generated_resolutions, resolution_min, resolution_max)
+
+  # Generate 2D resolutions based on the resolution areas and aspect ratio range
+  resolutions2d = []
+  for reso in generated_resolutions:
+    randreso = np.random.randint (round (reso * min_ratio), round (reso * max_ratio) + 1)
+    resolutions2d.append ((randreso, round (reso * reso / randreso)))
+  return resolutions2d # generated_resolutions
 
 def main():
   # parse args
@@ -17,11 +112,12 @@ def main():
   parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
   parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
-  parser.add_argument ("--seed", default = None, help = "Seed for random number generators")
+  parser.add_argument ("--seed", type = int, default = None, help = "Seed for random number generators")
   args = parser.parse_args()
-  if args.seed:
-    random.seed (args.seed)
-    # np.random.seed (int (args.seed))
+  seed = args.seed if args.seed is not None else random.randint (0, 2**32 - 1)
+  random.seed (seed)
+  np.random.seed (seed)
+  eprint (f"SEED: {seed}")
   output_dir = os.path.abspath (args.outputdir)
   imagedir = os.path.abspath (args.imagedir)
   if not os.path.isdir (imagedir):
@@ -53,13 +149,21 @@ def main():
   # shuffle input files to ensure random selection
   random.shuffle (input_image_filepaths)
 
+  # draw randomized resolutions
+  resolution_min, resolution_max, resolution_pdf, resolution_cdf, resolution_icdf = setup_icdf ()
+  resolutions2d = generate_resolutions (resolution_icdf, resolution_min, resolution_max, len (input_image_filepaths))
+  target_sizes = []
+
   # copy all images into output_dir + '/inputs/'
   inputsdir = os.path.join (output_dir, 'inputs')
   os.makedirs (inputsdir, exist_ok = True)
   imgcounter = 1
-  for src_image_path in input_image_filepaths:
-    dstname = os.path.join (inputsdir, 'img%05u' % imgcounter)
-    eprint ("adding image:", dstname, "->", src_image_path)
+  for imgidx, src_image_path in enumerate (input_image_filepaths):
+    imgname = 'img%05u' % imgcounter
+    dstname = os.path.join (inputsdir, imgname)
+    rw, rh = resolutions2d[imgidx]
+    target_sizes.append ((imgname, f"{rw}x{rh}"))
+    eprint ("adding image:", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
     # TODO: rescale if image is beyond 2k, for now always link
     os.symlink (src_image_path, dstname)
     imgcounter += 1
@@ -67,11 +171,12 @@ def main():
       break
 
   # generate attacks.inc that lists all attacks
-  attacks_inc_path = os.path.join (output_dir, 'attacks.inc')
-  eprint ("adding Makefile:", attacks_inc_path)
-  with open (attacks_inc_path, 'w') as f:
-    f.write ('ATTACKS = a b c\n')
-  # TODO: generate attacks.inc that lists all attacks
+  randomsize_inc_path = os.path.join (output_dir, 'randomsize.inc')
+  eprint ("adding Makefile:", randomsize_inc_path)
+  with open (randomsize_inc_path, 'w') as f:
+    # Assign target-specific ATTACK_SIZE variable for each image
+    for img, sz in target_sizes:
+      f.write (f'$(ATTACK_RANDOMSIZE)/{img}: RANDOMSIZE := {sz}\n')
 
 if __name__ == "__main__":
   main()
