@@ -1,0 +1,36 @@
+# This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
+
+FROM alpine:latest
+
+# SHELL ["/bin/bash", "-c"]
+
+# apk add mimalloc && export LD_PRELOAD=/usr/lib/libmimalloc.so.2
+
+RUN \
+  apk update
+
+RUN \
+  apk add --no-cache sudo git alpine-sdk sed bash openimageio-dev opencv-dev imagemagick ghostscript-fonts rsvg-convert \
+  pandoc build-base libffi-dev openblas-dev freetype-dev libpng-dev jpeg-dev tiff-dev lcms2-dev \
+  python3-dev py3-opencv py3-numpy py3-scipy py3-matplotlib py3-pip py3-wheel py3-numpy py3-scipy
+CMD ["/bin/bash"]
+
+RUN \
+  time pip install --no-cache-dir --break-system-packages scikit-image
+RUN \
+  apk cache clean && apk cache purge
+
+# Support 1000:1000 for normal developer setups, and for
+# Github CI support runner:runner, both with sudo enabled
+RUN : \
+  && mkdir -p /github /etc/skel \
+  && echo -e "alias ll='ls -alF'\nalias la='ls -A'\nalias l='ls -CF'" > /etc/skel/.bashrc \
+  && addgroup -g 1000 run1000 && adduser -D -u 1000 -G run1000 -h /github/home1000 -s /bin/bash run1000 \
+  && echo "run1000 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/run1000 \
+  && addgroup -g 127 runner && adduser -D -u 1001 -G runner -h /github/home -s /bin/bash runner \
+  && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner
+USER run1000
+
+# docker build -t ghcr.io/tim-janik/imagewmark-ci:alpine-latest -f .github/workflows/Dockerfile.alpine .github/workflows/
+#   docker push ghcr.io/tim-janik/imagewmark-ci:alpine-latest
+# docker run -ti --rm -v $PWD:/imagewmark-ci -w /imagewmark-ci ghcr.io/tim-janik/imagewmark-ci:alpine-latest
