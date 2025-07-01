@@ -32,5 +32,5 @@ RUN : \
 USER run1000
 
 # docker build -t ghcr.io/tim-janik/imagewmark-ci:alpine-latest -f .github/workflows/Dockerfile.alpine .github/workflows/
-#   docker push ghcr.io/tim-janik/imagewmark-ci:alpine-latest
+#   docker push ghcr.io/tim-janik/imagewmark-ci:alpine-latest   # Make-Public: https://github.com/users/tim-janik/packages/container/<IMAGE>/settings
 # docker run -ti --rm -v $PWD:/imagewmark-ci -w /imagewmark-ci ghcr.io/tim-janik/imagewmark-ci:alpine-latest
