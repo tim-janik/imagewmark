@@ -187,7 +187,7 @@ image_info (const String &input)
   img.height = spec.height;
   img.channels = spec.nchannels;
   img.pixels.resize (img.width * img.height * img.channels);
-  inp->read_image (TypeDesc::UINT8, &img.pixels[0]);
+  inp->read_image (inp->current_subimage(), inp->current_miplevel(), 0, -1, TypeDesc::UINT8, &img.pixels[0]);
   img.comment = spec.get_string_attribute ("ImageDescription", ""); // JPEG, TIFF
   if (img.comment.empty())
     img.comment = spec.get_string_attribute ("Comment", ""); // PNG
@@ -222,7 +222,7 @@ convert_image (const String &input, const String &output, const String &bits)
   img.height = spec.height;
   img.channels = spec.nchannels;
   img.pixels.resize (img.width * img.height * img.channels);
-  inp->read_image (TypeDesc::UINT8, &img.pixels[0]);
+  inp->read_image (inp->current_subimage(), inp->current_miplevel(), 0, -1, TypeDesc::UINT8, &img.pixels[0]);
   img.comment = spec.get_string_attribute ("ImageDescription", ""); // JPEG, TIFF
   if (img.comment.empty())
     img.comment = spec.get_string_attribute ("Comment", ""); // PNG
