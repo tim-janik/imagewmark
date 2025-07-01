@@ -1,0 +1,24 @@
+# This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
+
+# Linting: xclip -sel c <.github/workflows/ci-builds.yml # https://rhysd.github.io/actionlint/
+
+on:
+  push:
+    branches: ['trunk', 'wip/**']
+    # tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
+
+jobs:
+
+  Alpine-CI:
+    runs-on: ubuntu-latest
+    container: { image: 'ghcr.io/tim-janik/imagewmark-ci:alpine-latest', options: --user runner }
+    steps:
+    - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0, submodules: recursive } }
+    - run: git fetch -f --tags          # Fix actions/checkout#290
+    - run: git describe --always --long
+    - run: make -j`nproc`
+    - run: make -j`nproc` check
+    - run: |
+        git describe | tee Alpine-CI.txt
+        echo OK | tee -a Alpine-CI.txt
+    - { uses: actions/upload-artifact@v4, with: { name: assets, path: Alpine-CI.txt } }
