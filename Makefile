@@ -1,8 +1,8 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 all:	# default target
 
-VERSION		:= 0.4.0
-
+version_full	!= src/version.sh
+VERSION		:= $(word 1, $(version_full))
 ALL_TARGETS	:=
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
@@ -10,9 +10,17 @@ QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" 
 PANDOC		:= pandoc
 CLEANFILES	:=
 
+# Force .version to be kept up to date
+.version: ; src/version.sh > $@
+Makefile: .version
+ifneq ($(version_full),$(shell test ! -r .version || cat .version))
+.PHONY: .version
+endif
 
+# Include subdirs
 include doc/Makefile.mk
 
+# Rules
 all:
 	$(MAKE) -C cxx $@
 	$(MAKE) -C src $@
