@@ -10,6 +10,12 @@ QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" 
 PANDOC		:= pandoc
 CLEANFILES	:=
 
+# Installation locations
+PREFIX	?= /usr/local
+BINDIR	?= $(PREFIX)/bin
+LIBEXEC	?= libexec/imagewmark-$(VERSION)
+PRJDIR	?= $(PREFIX)/$(LIBEXEC)
+
 # Force .version to be kept up to date
 .version: ; src/version.sh > $@
 Makefile: .version
@@ -30,6 +36,19 @@ ALL_TARGETS += cxx/imagewmark-cxx
 src/peaks2grid: ; $(MAKE) -C src ${@:src/%=%}
 ALL_TARGETS += src/peaks2grid
 
+# == install ==
+install:
+	mkdir -p $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx
+	cp -Pp imagewmark .version $(PRJDIR)
+	cp -Pp src/*.py src/cornersync src/peaks2grid $(PRJDIR)/src
+	cp -Pp cxx/imagewmark-cxx $(PRJDIR)/cxx
+	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
+uninstall:
+	test "$$(readlink -f $(BINDIR)/imagewmark)" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
+	|| rm -f $(BINDIR)/imagewmark
+	rm -rf $(PRJDIR)
+
+# == clean ==
 clean:
 	$(MAKE) -C cxx $@
 	$(MAKE) -C src $@
