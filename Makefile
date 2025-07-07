@@ -21,10 +21,15 @@ endif
 include doc/Makefile.mk
 
 # Rules
-all:
-	$(MAKE) -C cxx $@
-	$(MAKE) -C src $@
-	ln -sf src/imagewmark .
+imagewmark: ; ln -sf src/imagewmark.py $@
+ALL_TARGETS += imagewmark
+
+cxx/imagewmark-cxx: ; $(MAKE) -C cxx ${@:cxx/%=%}
+ALL_TARGETS += cxx/imagewmark-cxx
+
+src/peaks2grid: ; $(MAKE) -C src ${@:src/%=%}
+ALL_TARGETS += src/peaks2grid
+
 clean:
 	$(MAKE) -C cxx $@
 	$(MAKE) -C src $@

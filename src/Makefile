@@ -23,10 +23,10 @@ define CHECK_RESOLUTION
 check-$1:
 	$(Q) echo '  CHECK   ' $$@
 	$(Q) convert ../tests/example01.svg -resize $1 $$@.png
-	$(Q) ./imagewmark add $$@.png $$@.wm.png $(WATERMARK)
+	$(Q) ../imagewmark add $$@.png $$@.wm.png $(WATERMARK)
 	$(Q) test $1 -gt 2048 \
 	|| { convert $$@.wm.png -resize 1024 $$@.small.png && mv $$@.small.png $$@.wm.png ; }
-	$(Q) ./imagewmark get $$@.wm.png --json $$@.json
+	$(Q) ../imagewmark get $$@.wm.png --json $$@.json
 	$(Q) grep -qE '\b$(WATERMARK)\b' $$@.json || \
 		{ echo "$$@.png: failed to detect watermark" >&2 ; false ; }
 	$(Q) rm $$@.png $$@.wm.png $$@.json
