@@ -22,8 +22,8 @@ jobs:
         git describe --always --long
     - run: make -j`nproc`
     - run: |
-        src/version.sh |& tee Alpine-CI.txt
-        make -j`nproc` check |& tee -a Alpine-CI.txt
+        src/version.sh >&2 | tee Alpine-CI.txt
+        make -j`nproc` check >&2 | tee -a Alpine-CI.txt
     - { uses: actions/upload-artifact@v4, with: { name: assets, path: Alpine-CI.txt } }
 
   Ping-IRC:
