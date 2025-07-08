@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 
-# first and foremost, start tracking execution time
+# For benchmarking, start tracking execution time as first thing
 from time import time
 startup_time = time()
 
-from version import __version__
-
+# Load submodules relative to script location
+from pathlib import Path
+BASE_DIR = Path (__file__).resolve().parent
 import sys
+sys.path.insert (0, str (BASE_DIR / '../src'))
+
+__version__ = open (str (BASE_DIR / "../.version")).read().strip()
+
 import argparse
 import embed, extract
 import numpy as np

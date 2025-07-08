@@ -5,6 +5,7 @@
 *.pdf
 *.png
 *.tiff
+.version
 olddocs/
 report.md
 /BACKLOG.md

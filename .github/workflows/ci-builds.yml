@@ -5,7 +5,9 @@
 on:
   push:
     branches: ['trunk', 'wip/**']
-    # tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
+    tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
+  pull_request:
+    branches: ['trunk', 'wip/**']  # Only run PRs targeting these branches
 
 jobs:
 
@@ -15,10 +17,27 @@ jobs:
     steps:
     - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0, submodules: recursive } }
     - run: git fetch -f --tags          # Fix actions/checkout#290
-    - run: git describe --always --long
-    - run: make -j`nproc`
-    - run: make -j`nproc` check
     - run: |
-        git describe | tee Alpine-CI.txt
-        echo OK | tee -a Alpine-CI.txt
+        src/version.sh
+        git describe --always --long
+    - run: make -j`nproc`
+    - run: |
+        src/version.sh |& tee Alpine-CI.txt
+        make -j`nproc` check |& tee -a Alpine-CI.txt
     - { uses: actions/upload-artifact@v4, with: { name: assets, path: Alpine-CI.txt } }
+
+  Ping-IRC:
+    if: always()	# github.event_name != 'pull_request'
+    needs: [Alpine-CI]
+    runs-on: ubuntu-latest
+    steps:
+    - { uses: actions/checkout@v4.1.1,  with: { fetch-depth: 0 } }
+    - run: git fetch -f --tags          # Fix actions/checkout#290
+    - name: Check-Jobs
+      run: |
+        echo 'Alpine-CI:${{ needs.Alpine-CI.result }}'
+        [[ ${{ needs.Alpine-CI.result }}    =~ success|skipped ]]
+    - name: Ping-IRC
+      if: ${{ always() && !env.ACT }}
+      run: |
+        .github/workflows/ircbot.py -q -j "#Anklang" -G -S '${{ job.status }}' "$(git log -1 --format=%s)"
