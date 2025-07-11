@@ -1,6 +1,5 @@
 // Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 #include "imagewmark.hh"
-#include "autocfg.hh"
 #include "random.hh"
 #include "convcode.hh"
 #include <stdio.h>

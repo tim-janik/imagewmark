@@ -1,40 +1,44 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 all:	# default target
 
+SHELL		:= /bin/bash -o pipefail
 version_full	!= src/version.sh
 VERSION		:= $(word 1, $(version_full))
 ALL_TARGETS	:=
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
-QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && echo "$$QOUT"; }; QECHO
+QSKIP		:= $(if $(findstring s,$(MAKEFLAGS)),: )
+QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && $(QSKIP) echo "$$QOUT"; }; QECHO
+QCHECK		 = $(QECHO) CHECK $@
+QOK		 = $(QECHO) OK $@
 PANDOC		:= pandoc
-CLEANFILES	:=
+CLEANFILES	 = $(ALL_TARGETS) .version
 
+# == Paths ==
 # Installation locations
 PREFIX	?= /usr/local
 BINDIR	?= $(PREFIX)/bin
 LIBEXEC	?= libexec/imagewmark-$(VERSION)
 PRJDIR	?= $(PREFIX)/$(LIBEXEC)
 
+# == Versioning ==
 # Force .version to be kept up to date
-.version: ; src/version.sh > $@
-Makefile: .version
+.version: ; $(QGEN) && src/version.sh > $@
+ALL_TARGETS += .version
 ifneq ($(version_full),$(shell test ! -r .version || cat .version))
 .PHONY: .version
 endif
 
-# Include subdirs
+# == Subdir Makefiles ==
+include src/Makefile.mk
+include cxx/Makefile.mk
 include doc/Makefile.mk
 
 # Rules
-imagewmark: ; ln -sf src/imagewmark.py $@
+imagewmark:
+	$(QGEN)
+	$Q ln -sf src/imagewmark.py $@
 ALL_TARGETS += imagewmark
-
-cxx/imagewmark-cxx: ; $(MAKE) -C cxx ${@:cxx/%=%}
-ALL_TARGETS += cxx/imagewmark-cxx
-
-src/peaks2grid: ; $(MAKE) -C src ${@:src/%=%}
-ALL_TARGETS += src/peaks2grid
 
 # == install ==
 install:
@@ -50,40 +54,22 @@ uninstall:
 
 # == clean ==
 clean:
-	$(MAKE) -C cxx $@
-	$(MAKE) -C src $@
-	rm -f $(CLEANFILES) ./imagewmark
+	rm -f $(CLEANFILES)
 
 test:
 	$(MAKE) -C tests/ $@
 .PHONY: test
 
-extract_files_py = $(strip \
-	src/common.py	\
-	src/ddist.py	\
-	src/extract.py	\
-)
-other_files_py = $(strip \
-	src/config.py	\
-	src/embed.py	\
-	src/plotting.py	\
-	src/wmtool.py	\
-)
-
-# == check ==
-check: check-syntax check-cxx check-src
-.PHONY: check
+# == check-syntax ==
 check-syntax:
 	$(QECHO) CHECK 'Detect invalid print() statements'
 	$Q { TCOLOR=--color=always ; tty -s <&1 || TCOLOR=; } \
-	&& ( grep $$TCOLOR -nE '\bprint *\(' -r $(extract_files_py) || : )
+	&& ( grep $$TCOLOR -nE '\bprint *\(' -r src/*.py || : )
 .PHONY: check-syntax
-check-cxx:
-	$(MAKE) -C cxx check
-.PHONY: check-cxx
-check-src:
-	$(MAKE) -C src check
-.PHONY: check-src
+
+# == check ==
+check: check-syntax
+.PHONY: check
 
 # == all ==
 all: $(ALL_TARGETS)

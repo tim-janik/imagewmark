@@ -9,6 +9,9 @@
 #include <cctype>
 #include <string>
 
+#include <OpenImageIO/imageio.h>
+#include <gcrypt.h>
+
 // == Type Decls ==
 using Byte = unsigned char;
 using ByteS = std::vector<Byte>;
