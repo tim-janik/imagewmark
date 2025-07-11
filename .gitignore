@@ -2,6 +2,7 @@
 *.jpeg
 *.jpg
 *.key
+*.map
 *.pdf
 *.png
 *.tiff
@@ -12,3 +13,4 @@ report.md
 __pycache__
 x*
 /imagewmark
+/check*
