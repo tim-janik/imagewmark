@@ -2,6 +2,7 @@
 import sys, os
 import argparse
 import config, common
+from pathlib import Path
 from time import time
 from config import vprint, dprint, eprint
 import math
@@ -155,7 +156,7 @@ def find_peaks (S2_uni, S2j, window):
 
 def start_peaks_to_grid (args, img, peaks):
   clocksecs = common.clocksecs_start()
-  peaks2grid = os.path.join (os.path.dirname (__file__), "peaks2grid")
+  peaks2grid = Path (os.path.dirname (__file__), "..", "cxx", "peaks2grid").resolve()
   p2g = subprocess.Popen ([ peaks2grid ],
                           stdin = subprocess.PIPE,
                           stdout = subprocess.PIPE,
@@ -258,7 +259,8 @@ def corner_sync (W_est, wmasked, conv_decoder):
   W_est_width = W_est.shape[1]
   W_est_height = W_est.shape[0]
   wmasked_up = scipy.ndimage.zoom (wmasked, ZOOM, mode = 'mirror')
-  cornersync_args = [ os.path.join (os.path.dirname (__file__), "cornersync") ]
+  cornersync = Path (os.path.dirname (__file__), "..", "cxx", "cornersync").resolve()
+  cornersync_args = [ cornersync ]
   if (config.verbose >= 2):
     cornersync_args.append ("verbose")
   proc = subprocess.Popen (cornersync_args, stdin = subprocess.PIPE, stdout = subprocess.PIPE)
