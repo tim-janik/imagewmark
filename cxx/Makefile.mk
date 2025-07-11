@@ -17,16 +17,40 @@ compilecxxflags = $(CXXFLAGS) $(EXTRA_FLAGS) $($<.FLAGS) $($@.FLAGS) -MQ $@ -MMD
 %.o: %.cc
 	$(QECHO) CXX $@
 	$Q $(CCACHE) $(CXX) $(CXXSTD) $(compiledefs) $(compilecxxflags) -o $@ -c $<
-CLEANFILES += cxx/*.o cxx/*.o.d
+CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 
 # == cxx/imagewmark-cxx ==
-cxx/imagewmark-cxx.sources = cxx/imagewmark.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc
-cxx/imagewmark-cxx.objects = $(cxx/imagewmark-cxx.sources:.cc=.o)
+cxx/imagewmark-cxx.sources := cxx/imagewmark.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc
+cxx/imagewmark-cxx.objects := $(cxx/imagewmark-cxx.sources:.cc=.o)
 cxx/imagewmark-cxx: $(cxx/imagewmark-cxx.objects)
-	$(QECHO) LD $@
-	$Q $(LINK) $(cxx/imagewmark-cxx.objects) $(LDLIBS) -o $@ -Wl,--print-map >$@.map
+	$(QGEN)
+	$Q $(LINK) $(cxx/imagewmark-cxx.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
 ALL_TARGETS += cxx/imagewmark-cxx
-CLEANFILES += cxx/imagewmark-cxx.map
+
+# == cxx/peaks2grid ==
+cxx/peaks2grid.sources := cxx/peaks2grid.cc
+cxx/peaks2grid.objects := $(cxx/peaks2grid.sources:.cc=.o)
+cxx/peaks2grid: $(cxx/peaks2grid.objects)
+	$(QGEN)
+	$Q $(LINK) $(cxx/peaks2grid.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+ALL_TARGETS += cxx/peaks2grid
+
+# == OpenCV4 ==
+cxx/opencv4.cflags != pkg-config --cflags opencv4
+cxx/opencv4.libs   != pkg-config --libs opencv4
+ifeq ($(cxx/opencv4.cflags)$(cxx/opencv4.libs),)
+$(error Failed to find OpenCV4 (opencv4.pc) via pkg-config)
+endif
+
+# == cxx/cornersync ==
+cxx/cornersync.sources := cxx/cornersync.cc
+cxx/cornersync.objects := $(cxx/cornersync.sources:.cc=.o)
+cxx/cornersync.cc.FLAGS := $(cxx/opencv4.cflags)
+cxx/cornersync.LIBS     := $(cxx/opencv4.libs)
+cxx/cornersync: $(cxx/cornersync.objects)
+	$(QGEN)
+	$Q $(LINK) $(cxx/cornersync.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+ALL_TARGETS += cxx/cornersync
 
 # == Tests ==
 cxx/test-image-comment: cxx/imagewmark-cxx
