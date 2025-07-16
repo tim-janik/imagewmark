@@ -44,8 +44,8 @@ ALL_TARGETS += imagewmark
 install:
 	mkdir -p $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx
 	cp -Pp imagewmark .version $(PRJDIR)
-	cp -Pp src/*.py src/cornersync src/peaks2grid $(PRJDIR)/src
-	cp -Pp cxx/imagewmark-cxx $(PRJDIR)/cxx
+	cp -Pp src/*.py $(PRJDIR)/src
+	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
 	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
 uninstall:
 	test "$$(readlink -f $(BINDIR)/imagewmark)" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
