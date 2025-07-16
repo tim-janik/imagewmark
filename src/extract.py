@@ -728,11 +728,16 @@ def extract_from_grey (face_J, orig_J, strength, args):
   #
   # In case face_J could be aligned to the unwatermarked original image, there is little
   # use for synchronization via auto convolution, so we only use corner sync.
-  if orig_J is None:            # blind decoding
+  if args.cornersync >= 1:
+    sync_list = [ (window_size, True) for window_size in config.extract_window_size ]
+  elif args.cornersync == 0:
     sync_list = [ (window_size, False) for window_size in config.extract_window_size ]
-    sync_list.insert (1, (config.extract_window_size[0], True))
-  else:                         # decode with aligned original
-    sync_list = [ (config.extract_window_size[0], True) ]
+  else:  # args.cornersync < 0: auto
+    if orig_J is None:            # blind decoding
+      sync_list = [ (window_size, False) for window_size in config.extract_window_size ]
+      sync_list.insert (1, (config.extract_window_size[0], True))
+    else:                         # decode with aligned original
+      sync_list = [ (config.extract_window_size[0], True) ]
   wmi_list = []
   for (window_size, use_corner_sync) in sync_list:
     win_wmi_list, done = detect_watermark_with_window (face_J, orig_J, strength, args, (window_size, window_size), wmasked, use_corner_sync, conv_decoder)
