@@ -42,15 +42,29 @@ ALL_TARGETS += imagewmark
 
 # == install ==
 install:
+	$(QGEN)
 	mkdir -p $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx
 	cp -Pp imagewmark .version $(PRJDIR)
 	cp -Pp src/*.py $(PRJDIR)/src
 	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
 	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
 uninstall:
+	$(QGEN)
 	test "$$(readlink -f $(BINDIR)/imagewmark)" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
 	|| rm -f $(BINDIR)/imagewmark
 	rm -rf $(PRJDIR)
+
+# == installcheck ==
+# verify that the installed imagewmark can process WMs
+INSTALLED_IMAGEWMARK := $(PRJDIR)/imagewmark
+installcheck:
+	@$(eval TDIR != mktemp --tmpdir -d iwm.XXXXXX)
+	$(QGEN)
+	$Q convert tests/example01.svg $(TDIR)/iwmtest01.png
+	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) add iwmtest01.png iwmtest01wm.png 1234abcd00
+	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) get --cornersync=on  iwmtest01wm.png >wm-cs.out && fgrep -q 1234abcd00 wm-cs.out
+	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) get --cornersync=off iwmtest01wm.png >wm-nc.out && fgrep -q 1234abcd00 wm-nc.out
+	$Q rm -r $(TDIR)
 
 # == clean ==
 clean:
