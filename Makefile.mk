@@ -49,6 +49,7 @@ install:
 	cp -Pp imagewmark .version $(PRJDIR)
 	cp -Pp src/*.py $(PRJDIR)/src
 	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
+	mkdir -p $(BINDIR)
 	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
 uninstall:
 	$(QGEN)
