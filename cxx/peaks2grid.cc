@@ -174,7 +174,7 @@ struct Grid
   double   qscore = 0;
   double   mmax_score = 0;
   double   min_edge = 0;
-  uint     regular_grid = 0;
+  uint32_t regular_grid = 0;
 };
 
 static constexpr int GRID_MAX_DIST = 30;
