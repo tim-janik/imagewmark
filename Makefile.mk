@@ -4,6 +4,8 @@ all:	# default target
 SHELL		:= /bin/bash -o pipefail
 version_full	!= src/version.sh
 VERSION		:= $(word 1, $(version_full))
+version_bits	:= $(subst _, , $(subst -, , $(subst ., , $(VERSION))))
+PKGVERSION	:= $(word 1, $(version_bits)).$(word 2, $(version_bits))
 ALL_TARGETS	:=
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
@@ -18,7 +20,7 @@ CLEANFILES	 = $(ALL_TARGETS) .version
 # Installation locations
 PREFIX	?= /usr/local
 BINDIR	?= $(PREFIX)/bin
-LIBEXEC	?= libexec/imagewmark-$(VERSION)
+LIBEXEC	?= libexec/imagewmark-$(PKGVERSION)
 PRJDIR	?= $(PREFIX)/$(LIBEXEC)
 
 # == Versioning ==
@@ -50,9 +52,9 @@ install:
 	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
 uninstall:
 	$(QGEN)
+	rm -rf $(PRJDIR)
 	test "$$(readlink -f $(BINDIR)/imagewmark)" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
 	|| rm -f $(BINDIR)/imagewmark
-	rm -rf $(PRJDIR)
 
 # == installcheck ==
 # verify that the installed imagewmark can process WMs
