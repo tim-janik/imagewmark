@@ -25,9 +25,9 @@ jobs:
         src/version.sh >&2 | tee Alpine-CI.txt
         make -j`nproc` check >&2 | tee -a Alpine-CI.txt
     - run: |
-        make install
-        make installcheck
-        make uninstall
+        make PREFIX=$HOME install
+        make PREFIX=$HOME installcheck
+        make PREFIX=$HOME uninstall
     - { uses: actions/upload-artifact@v4, with: { name: assets, path: Alpine-CI.txt } }
 
   Ping-IRC:
