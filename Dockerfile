@@ -16,7 +16,8 @@ RUN apt-get install -y build-essential \
 	python3-skimage \
 	libgcrypt20-dev \
 	libopenimageio-dev \
-	libopencv-dev
+	libopencv-dev \
+	pandoc
 
 # Setup clean source dir
 ADD . /imagewmark
