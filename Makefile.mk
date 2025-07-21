@@ -74,6 +74,20 @@ installcheck:
 	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) get --cornersync=off iwmtest01wm.png >wm-nc.out && fgrep -q 1234abcd00 wm-nc.out
 	$Q rm -r $(TDIR)
 
+# == distcheck ==
+distcheck:
+	@$(eval distversion != (git describe --tags --match='v[0-9]*.[0-9]*.[0-9]*' --exact-match 2>/dev/null || git describe --match='v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null) | sed 's/^v//')
+	@$(eval distname := imagewmark-$(distversion))
+	$(QECHO) MAKE $(distname).tar.zst
+	$Q test -n "$(distversion)" || (echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" ; false )
+	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
+	$Q git archive -o $(distname).tar --prefix=$(distname)/ HEAD
+	$Q rm -f $(distname).tar.zst && zstd --ultra -22 --rm $(distname).tar && ls -lh $(distname).tar.zst
+	$Q T=`mktemp -d --tmpdir iwmtest-XXXXXX` && cd $$T && tar xvf $(abspath $(distname).tar.zst) && cd imagewmark-$(distversion) \
+	&& make all && cd / && make -C $$T/imagewmark-$(distversion) PREFIX=$$T/inst install installcheck uninstall \
+	&& $$T/imagewmark-$(distversion)/imagewmark --version && rm -r "$$T"
+	$Q echo "Archive ready: $(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
+
 # == clean ==
 clean:
 	rm -f $(CLEANFILES)
