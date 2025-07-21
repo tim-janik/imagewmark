@@ -22,15 +22,14 @@ jobs:
         git describe --always --long
     - run: make -j`nproc`
     - run: |
-        src/version.sh >&2 | tee Alpine-CI.txt
-        make -j`nproc` check >&2 | tee -a Alpine-CI.txt
+        make -j`nproc` check
     - run: |
         make PREFIX=$HOME install
         make PREFIX=$HOME installcheck
         make PREFIX=$HOME uninstall
     - run: |
         make PREFIX=$HOME distcheck
-    - { uses: actions/upload-artifact@v4, with: { name: assets, path: Alpine-CI.txt } }
+    - { uses: actions/upload-artifact@v4, with: { name: assets, path: 'imagewmark-*.tar.zst' } }
 
   Ping-IRC:
     if: always()	# github.event_name != 'pull_request'
