@@ -27,11 +27,11 @@
 class Random
 {
 public:
-  enum class Stream : uint32_t {
-    wm_pattern  = 0xe58eb537,
-    wm_mask     = 0xfd19fc82,
-    wm_convcode = 0x7ecf1f7a,
-    img_comment = 0x7abcde01,
+  enum class Stream : uint8_t {
+    wm_pattern  = 1,
+    wm_mask     = 2,
+    wm_convcode = 3,
+    img_comment = 4,
   };
 private:
   gcry_cipher_hd_t           aes_ctr_cipher = nullptr;
