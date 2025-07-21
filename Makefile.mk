@@ -45,7 +45,7 @@ ALL_TARGETS += imagewmark
 # == install ==
 install:
 	$(QGEN)
-	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc
+	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc $(PREFIX)/share/man/man1
 	cp -Pp imagewmark .version $(PRJDIR)
 	cp -Pp src/*.py $(PRJDIR)/src
 	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
