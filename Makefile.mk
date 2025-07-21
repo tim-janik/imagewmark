@@ -45,17 +45,22 @@ ALL_TARGETS += imagewmark
 # == install ==
 install:
 	$(QGEN)
-	mkdir -p $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx
+	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc
 	cp -Pp imagewmark .version $(PRJDIR)
 	cp -Pp src/*.py $(PRJDIR)/src
 	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
-	mkdir -p $(BINDIR)
-	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
+	cp -Pp doc/imagewmark.1 doc/imagewmark-arch.html $(PRJDIR)/doc
+	ln -sf ../../../$(LIBEXEC)/doc/imagewmark.1 $(PREFIX)/share/man/man1/imagewmark-$(PKGVERSION).1
+	ln -sf imagewmark-$(PKGVERSION).1 $(PREFIX)/share/man/man1/imagewmark.1
+	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark-$(PKGVERSION)
+	ln -sf imagewmark-$(PKGVERSION) $(BINDIR)/imagewmark
 uninstall:
 	$(QGEN)
+	test "$$(readlink $(BINDIR)/imagewmark)" != "imagewmark-$(PKGVERSION)" \
+	|| rm -f $(BINDIR)/imagewmark $(PREFIX)/share/man/man1/imagewmark.1
+	test "$$(readlink -f $(BINDIR)/imagewmark-$(PKGVERSION))" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
+	|| rm -f $(BINDIR)/imagewmark-$(PKGVERSION) $(PREFIX)/share/man/man1/imagewmark-$(PKGVERSION).1
 	rm -rf $(PRJDIR)
-	test "$$(readlink -f $(BINDIR)/imagewmark)" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
-	|| rm -f $(BINDIR)/imagewmark
 
 # == installcheck ==
 # verify that the installed imagewmark can process WMs
