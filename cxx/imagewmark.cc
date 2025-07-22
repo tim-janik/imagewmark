@@ -2,6 +2,7 @@
 #include "imagewmark.hh"
 #include "random.hh"
 #include "convcode.hh"
+#include <sys/stat.h>
 #include <stdio.h>
 
 static void     image_info (const String &input);
@@ -128,7 +129,7 @@ main (int argc, const char *argv[])
     {
       const String outfile = args[1];
       FILE *f = fopen (outfile.c_str(), "w");
-      if (!f ||
+      if (!f || fchmod (fileno (f), 0600) < 0 || // secret key file must only user-readable
           fprintf (f, "# watermarking key for imagewmark\n\nkey %s\n", Random::gen_key().c_str()) < 0 ||
           fclose (f) < 0)
         die (5, "failed to create `%s`: %s\n", outfile.c_str(), strerror (errno));
