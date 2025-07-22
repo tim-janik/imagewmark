@@ -21,6 +21,12 @@ The methods used for watermark embedding and extraction are based on:
 Zehua Ma, Weiming Zhang, Han Fang, Xiaoyi Dong, Linfeng Geng, Nenghai Yu.
 https://arxiv.org/abs/2007.10240
 
+Disclaimer: Future versions of Imagewmark may introduce changes to the
+watermark encoding format. This means that watermark data encoded with a newer
+version may not be decodable by older versions, and vice versa. For best
+compatibility, use the same MAJOR.MINOR version of Imagewmark for both
+encoding and decoding.
+
 
 ## INSTALLATION
 
