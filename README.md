@@ -39,7 +39,11 @@ To build and run imagewmark, the following package dependencies need to be provi
 	# Build C++ helpers
 	make
 	# Test invocation
-	src/imagewmark --help
+	./imagewmark --help
+	# Install to use system wide
+	make PREFIX=/usr/local install
+	# Remove installation
+	make PREFIX=/usr/local uninstall
 
 ### DOCKER
 
