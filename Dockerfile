@@ -1,6 +1,6 @@
 # == Distribution preparation ==
 FROM gcc:latest
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Use BASH(1) as shell, affects the RUN commands below
 RUN ln -sf bash /bin/sh && ls -al /bin/sh
@@ -33,7 +33,7 @@ VOLUME ["/data"]
 WORKDIR /data
 
 # Exe for `docker run`
-ENTRYPOINT ["/imagewmark/src/imagewmark"]
+ENTRYPOINT ["/imagewmark/imagewmark"]
 
 # docker build -f Dockerfile -t imagewmark-0 .
 # docker run -ti --rm -v $PWD:/data imagewmark-0    gen-key mysecret.key
