@@ -29,7 +29,7 @@ jobs:
         make PREFIX=$HOME uninstall
     - run: |
         make PREFIX=$HOME distcheck
-    - { uses: actions/upload-artifact@v4, with: { name: assets, path: 'imagewmark-*.tar.zst' } }
+    - { uses: actions/upload-artifact@v4, with: { name: imagewmark-snapshot, path: 'imagewmark-*.tar.zst' } }
 
   Ping-IRC:
     if: always()	# github.event_name != 'pull_request'
