@@ -39,7 +39,11 @@ To build and run imagewmark, the following package dependencies need to be provi
 	# Build C++ helpers
 	make
 	# Test invocation
-	src/imagewmark --help
+	./imagewmark --help
+	# Install to use system wide
+	make PREFIX=/usr/local install
+	# Remove installation
+	make PREFIX=/usr/local uninstall
 
 ### DOCKER
 
@@ -59,26 +63,26 @@ to be provided for `docker run`.
 Add a watermark to an existing image, note that watermarks shorter than 128 bits
 are repeated to fill up to 128 bits:
 
-	src/imagewmark add input.png output.png babe
+	imagewmark add input.png output.png babe
 
 Extract a previously embedded watermark:
 
-	src/imagewmark get output.png
+	imagewmark get output.png
 	babebabebabebabebabebabebabebabe JSD=99.94%
 
 Using an encryption key to conceal the watermark payload:
 
 	# Create a private key to encrypt and decrypt the payload
-	src/imagewmark gen-key mysecret.key
+	imagewmark gen-key mysecret.key
 	# Utilize the key during embedding and extraction
-	src/imagewmark add --key mysecret.key in.png out.png 12341234123412341234123412341234
-	src/imagewmark get --key mysecret.key out.png
+	imagewmark add --key mysecret.key in.png out.png 12341234123412341234123412341234
+	imagewmark get --key mysecret.key out.png
 	12341234123412341234123412341234 JSD=99.96% pixels_mscn= -6.9952832164817345 … 6.9973355487490725
 
 For automation, the watermark extraction supports result generation in JSON format:
 
 	# Write watermark detection results into watermarks.json
-	src/imagewmark get --key mysecret.key --json watermarks.json out.png
+	imagewmark get --key mysecret.key --json watermarks.json out.png
 	cat watermarks.json      # shortened output
 	{
 	  "width": 1024, "height": 1024,

@@ -76,16 +76,22 @@ installcheck:
 
 # == distcheck ==
 distcheck:
-	@$(eval distversion != (git describe --tags --match='v[0-9]*.[0-9]*.[0-9]*' --exact-match 2>/dev/null || git describe --match='v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null) | sed 's/^v//')
+	@$(eval distversion != git describe --match='v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//')
 	@$(eval distname := imagewmark-$(distversion))
 	$(QECHO) MAKE $(distname).tar.zst
 	$Q test -n "$(distversion)" || (echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" ; false )
 	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
 	$Q git archive -o $(distname).tar --prefix=$(distname)/ HEAD
 	$Q rm -f $(distname).tar.zst && zstd --ultra -22 --rm $(distname).tar && ls -lh $(distname).tar.zst
-	$Q T=`mktemp -d --tmpdir iwmtest-XXXXXX` && cd $$T && tar xvf $(abspath $(distname).tar.zst) && cd imagewmark-$(distversion) \
-	&& make all && cd / && make -C $$T/imagewmark-$(distversion) PREFIX=$$T/inst install installcheck uninstall \
-	&& $$T/imagewmark-$(distversion)/imagewmark --version && rm -r "$$T"
+	$Q T=`mktemp -d --tmpdir iwmtest-XXXXXX` && cd $$T && tar xvf $(abspath $(distname).tar.zst) \
+	&& cd imagewmark-$(distversion) \
+	&& nice make all -j`nproc` \
+	&& make PREFIX=$$T/inst install \
+	&& make PREFIX=$$T/inst installcheck -j`nproc` \
+	&& (set -x && $$T/inst/bin/imagewmark --version) \
+	&& make PREFIX=$$T/inst uninstall \
+	&& (set -x && $$PWD/imagewmark --version) \
+	&& cd / && rm -r "$$T"
 	$Q echo "Archive ready: $(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
 
 # == clean ==
