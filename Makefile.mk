@@ -4,6 +4,8 @@ all:	# default target
 SHELL		:= /bin/bash -o pipefail
 version_full	!= src/version.sh
 VERSION		:= $(word 1, $(version_full))
+version_bits	:= $(subst _, , $(subst -, , $(subst ., , $(VERSION))))
+PKGVERSION	:= $(word 1, $(version_bits)).$(word 2, $(version_bits))
 ALL_TARGETS	:=
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
@@ -18,7 +20,7 @@ CLEANFILES	 = $(ALL_TARGETS) .version
 # Installation locations
 PREFIX	?= /usr/local
 BINDIR	?= $(PREFIX)/bin
-LIBEXEC	?= libexec/imagewmark-$(VERSION)
+LIBEXEC	?= libexec/imagewmark-$(PKGVERSION)
 PRJDIR	?= $(PREFIX)/$(LIBEXEC)
 
 # == Versioning ==
@@ -42,15 +44,49 @@ ALL_TARGETS += imagewmark
 
 # == install ==
 install:
-	mkdir -p $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx
+	$(QGEN)
+	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc $(PREFIX)/share/man/man1
 	cp -Pp imagewmark .version $(PRJDIR)
-	cp -Pp src/*.py src/cornersync src/peaks2grid $(PRJDIR)/src
-	cp -Pp cxx/imagewmark-cxx $(PRJDIR)/cxx
-	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark
+	cp -Pp src/*.py $(PRJDIR)/src
+	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
+	cp -Pp doc/imagewmark.1 doc/imagewmark-arch.html $(PRJDIR)/doc
+	ln -sf ../../../$(LIBEXEC)/doc/imagewmark.1 $(PREFIX)/share/man/man1/imagewmark-$(PKGVERSION).1
+	ln -sf imagewmark-$(PKGVERSION).1 $(PREFIX)/share/man/man1/imagewmark.1
+	ln -sf ../$(LIBEXEC)/imagewmark $(BINDIR)/imagewmark-$(PKGVERSION)
+	ln -sf imagewmark-$(PKGVERSION) $(BINDIR)/imagewmark
 uninstall:
-	test "$$(readlink -f $(BINDIR)/imagewmark)" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
-	|| rm -f $(BINDIR)/imagewmark
+	$(QGEN)
+	test "$$(readlink $(BINDIR)/imagewmark)" != "imagewmark-$(PKGVERSION)" \
+	|| rm -f $(BINDIR)/imagewmark $(PREFIX)/share/man/man1/imagewmark.1
+	test "$$(readlink -f $(BINDIR)/imagewmark-$(PKGVERSION))" != "$$(readlink -f $(PRJDIR)/imagewmark)" \
+	|| rm -f $(BINDIR)/imagewmark-$(PKGVERSION) $(PREFIX)/share/man/man1/imagewmark-$(PKGVERSION).1
 	rm -rf $(PRJDIR)
+
+# == installcheck ==
+# verify that the installed imagewmark can process WMs
+INSTALLED_IMAGEWMARK := $(PRJDIR)/imagewmark
+installcheck:
+	@$(eval TDIR != mktemp --tmpdir -d iwm.XXXXXX)
+	$(QGEN)
+	$Q convert tests/example01.svg $(TDIR)/iwmtest01.png
+	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) add iwmtest01.png iwmtest01wm.png 1234abcd00
+	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) get --cornersync=on  iwmtest01wm.png >wm-cs.out && fgrep -q 1234abcd00 wm-cs.out
+	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) get --cornersync=off iwmtest01wm.png >wm-nc.out && fgrep -q 1234abcd00 wm-nc.out
+	$Q rm -r $(TDIR)
+
+# == distcheck ==
+distcheck:
+	@$(eval distversion != (git describe --tags --match='v[0-9]*.[0-9]*.[0-9]*' --exact-match 2>/dev/null || git describe --match='v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null) | sed 's/^v//')
+	@$(eval distname := imagewmark-$(distversion))
+	$(QECHO) MAKE $(distname).tar.zst
+	$Q test -n "$(distversion)" || (echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" ; false )
+	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
+	$Q git archive -o $(distname).tar --prefix=$(distname)/ HEAD
+	$Q rm -f $(distname).tar.zst && zstd --ultra -22 --rm $(distname).tar && ls -lh $(distname).tar.zst
+	$Q T=`mktemp -d --tmpdir iwmtest-XXXXXX` && cd $$T && tar xvf $(abspath $(distname).tar.zst) && cd imagewmark-$(distversion) \
+	&& make all && cd / && make -C $$T/imagewmark-$(distversion) PREFIX=$$T/inst install installcheck uninstall \
+	&& $$T/imagewmark-$(distversion)/imagewmark --version && rm -r "$$T"
+	$Q echo "Archive ready: $(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
 
 # == clean ==
 clean:

@@ -16,7 +16,7 @@ doc/imagewmark-arch.html: doc/imagewmark-arch--help.md
 ALL_TARGETS += doc/imagewmark-arch.html
 
 # == doc/imagewmark-arch.pdf ==
-HAVE_PDFLATEX != command -V pdflatex && echo pdflatex
+HAVE_PDFLATEX != command -V pdflatex 2>/dev/null && echo pdflatex
 ifeq ($(HAVE_PDFLATEX),pdflatex)
 doc/imagewmark-arch.pdf: doc/imagewmark-arch--help.md
 	$(QGEN)
