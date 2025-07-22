@@ -1,3 +1,52 @@
+## Imagewmark 0.5.0:
+
+### Added:
+* Added the --cornersync=<on|off|auto> option to control the corner sync algorithm during extraction
+* Added developer documentation, including a description of the architecture
+* Added a manual page to the documentation (`imagewmark.1`)
+* Added a new tests/README.md to provide an overview and usage instructions for test runs
+* Added information about test image datasets to the test documentation
+* Added an Alpine CI workflow for automated builds and checks using GitHub Actions
+* Added an IRC bot for CI build status notifications
+* Added unit tests to verify basic functionality before/after installation
+* Added new script (gen-tests-mk) that creates out-of-tree test suites of custom sizes
+* Added support to utilize all CPU cores when running test batteries
+* Added specific tests for high-resolution images and downscaling attacks
+
+### Breaking:
+* We now read all images with OpenCV instead of PIL, this potentially changes the set of supported images
+* We assume OpenImageIO/imageio.h and gcrypt.h header files are present
+* Dependencies: libgcrypt20-dev libopenimageio-dev libopencv-dev
+* Watermark encoding has changed in the 0.5.0 version due to PRNG enum modifications
+* We now build PDF versions of the docs only if pdflatex is installed
+
+### Changed:
+* Improved test realism by randomizing attack resolutions and shuffled input image selection
+* Enhanced test reproducibility with improved and deterministic seeding mechanisms
+* Moved all C++ source code into a dedicated cxx/ directory
+* Better error handling in build scripts, with improved logging for debugging
+* Major overhaul of the build system with unified Makefiles and improved dependency handling
+* Fixed various bugs in the build system and C++ code
+* Introduced installation check and uninstallation rules (make install, installcheck, uninstall, distcheck)
+* Migrated version handling to a shell script with git integration
+* Fixed image reading to properly handle subimages and miplevels
+* Added check that secret key files are only readable by the user
+* We support parallel installations of different major.minor versions
+
+### Removed:
+* Removed unused OpenCV configure script
+* Removed auto config, compile sources in subdir
+
+### Contributors
+
+Thanks to everyone who made this release happen!
+
+* Tim Janik (@tim-janik)
+* Stefan Westerfeld (@swesterfeld)
+
+For full details, see the [commit history](https://github.com/tim-janik/imagewmark/commits/v0.5.0)
+
+
 ## Imagewmark 0.4.0:
 
 * Improved documentation in various places.
@@ -6,7 +55,7 @@
 * Extended visualizations when following along the detection algorithms.
 * Extended performance monitoring by adding CPU time and wall clock measurements to various phases.
 * Extended JSON support for reporting detected watermarks.
-* Introduced --trace-quality option, to provides scoresduring embedding.
+* Introduced --trace-quality option, to provide scores during embedding.
 * Improved test reports, added list generation for failing test cases.
 * Fixed test suite crashes, improved test rules and optimized parallel processing.
 * Fixed various image processing bugs, removed PIL dependency in favor of CV2 for image IO.
@@ -61,7 +110,7 @@
 * Reduce size of the randomized pixel pattern for more watermarks in small images.
 * Use smooth upsampling for embedding to reduce artifacts.
 * Improve reliability for areas of white or black pixels
-  - clip luminance to leave some headroom before embedding the watermark
+  - Clip luminance to leave some headroom before embedding the watermark
 * Fixed cropping of images with odd numbered dimensions.
 * Improve automated testing.
 * Use peak angles and regularities to detect a grid of embedded watermarks.
@@ -71,7 +120,7 @@
 ## Imagewmark 0.1.0:
 
 * Milestone 1 reached.
-* Proof of concept embedding and extration works, based on:
+* Proof of concept embedding and extraction works, based on:
   Local Geometric Distortions Resilient Watermarking Scheme Based on Symmetry
   Zehua Ma, Weiming Zhang, Han Fang, Xiaoyi Dong, Linfeng Geng, and Nenghai Yu
   https://arxiv.org/abs/2007.10240
