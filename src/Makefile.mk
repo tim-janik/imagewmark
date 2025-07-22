@@ -2,7 +2,7 @@
 
 src/watermark       := fedcba98765432100123456789abcdef
 
-# == check ==
+# == src/check-{1024...} ==
 define CHECK_RESOLUTION
 src/check-$1:
 	$(Q) echo '  CHECK   ' $$@
@@ -23,3 +23,12 @@ $(foreach R, $(CHECK_RESOLUTIONS), $(eval $(call CHECK_RESOLUTION,$R)))
 .PHONY: src/check
 check: src/check
 
+# == src/check-gen-key ==
+src/check-gen-key:
+	$Q echo '  CHECK   ' $@
+	$Q ./imagewmark gen-key xtmp.key
+	$Q test "`stat -c '%a' xtmp.key`" = "600" || \
+		{ echo "xtmp.key: invalid key file mode:" && ls -al xtmp.key && false ; } >&2
+	$Q rm xtmp.key
+.PHONY: src/check-gen-key
+check: src/check-gen-key
