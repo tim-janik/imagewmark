@@ -191,11 +191,12 @@ def command_add (input_img, output_img, message_hex, strength, args):
     dprint ("Cropped W:", W.shape, W.min(), '...', W.max());
 
   wm_face = add_wm (face, W, strength, args)
-  dprint ("Wmarked Image:", "strength=%.2f" % strength, wm_face.shape, wm_face.min(), '...', wm_face.max())
-  if len (wm_face.shape) > 2 and wm_face.shape[2] == 3:
-    dprint ("Wmarked: R", wm_face[:,:,0].min(), "...", wm_face[:,:,0].max())
-    dprint ("Wmarked: G", wm_face[:,:,1].min(), "...", wm_face[:,:,1].max())
-    dprint ("Wmarked: B", wm_face[:,:,2].min(), "...", wm_face[:,:,2].max())
+  if config.with_debug:
+    dprint ("Wmarked Image:", "strength=%.2f" % strength, wm_face.shape, wm_face.min(), '...', wm_face.max())
+    if len (wm_face.shape) > 2 and wm_face.shape[2] == 3:
+      dprint ("Wmarked: R", wm_face[:,:,0].min(), "...", wm_face[:,:,0].max())
+      dprint ("Wmarked: G", wm_face[:,:,1].min(), "...", wm_face[:,:,1].max())
+      dprint ("Wmarked: B", wm_face[:,:,2].min(), "...", wm_face[:,:,2].max())
 
   # float -> int conversion (see dither.py for comments), possible strategies are:
   #  - fs_dither (Floyd Steinberg)
