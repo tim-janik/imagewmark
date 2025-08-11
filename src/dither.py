@@ -80,7 +80,7 @@ if __name__ == '__main__':
   strength = float (sys.argv[1])
   zoom = float (sys.argv[2])
   x = (np.random.random ((64,64)) - 0.5) * 2 * strength + 127
-  wm = scipy.ndimage.zoom (x, zoom, mode = 'mirror')
+  wm = common.zoom_image (x, zoom)
   round_wm = round_pixels (wm)
   trunc_wm = trunc_pixels (wm)
   fs_dither_wm = fs_dither (wm)

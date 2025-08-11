@@ -18,7 +18,7 @@ def pre_scale (img):
   csize = min (img.shape[0], img.shape[1])
   ZOOM = config.pre_scale / csize
   if (ZOOM < 1):
-    scaled_img = scipy.ndimage.zoom (img, ZOOM, mode = 'mirror')
+    scaled_img = common.zoom_image (img, ZOOM)
     dprint ("pre_scale: %.1f%% %s -> %s" % (ZOOM * 100, img.shape, scaled_img.shape))
     return scaled_img
   else:
@@ -34,7 +34,7 @@ def corner_sync_scale (img):
     # don't upscale images which are already at or really close to our desired resolution
     return img
   else:
-    return scipy.ndimage.zoom (img, ZOOM, mode = 'mirror')
+    return common.zoom_image (img, ZOOM)
 
 # Generatre watermark estimation for ACNF
 def estimate_watermark (face_J, orig_J, strength, window):
@@ -258,7 +258,7 @@ def corner_sync (W_est, wmasked, conv_decoder):
   ZOOM = 2
   W_est_width = W_est.shape[1]
   W_est_height = W_est.shape[0]
-  wmasked_up = scipy.ndimage.zoom (wmasked, ZOOM, mode = 'mirror')
+  wmasked_up = common.zoom_image (wmasked, ZOOM)
   cornersync = Path (os.path.dirname (__file__), "..", "cxx", "cornersync").resolve()
   cornersync_args = [ cornersync ]
   if (config.verbose >= 2):
@@ -807,7 +807,7 @@ def watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xp
   Ldim = config.payload_shape[0]
   LR   = ZOOM * Lr
 
-  wmasked_up = scipy.ndimage.zoom (wmasked, ZOOM, mode = 'mirror')
+  wmasked_up = common.zoom_image (wmasked, ZOOM)
 
   uz = Ldim * Lr * ZOOM                          # watermark unit egde size
   Lwu = uz
