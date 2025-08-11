@@ -110,6 +110,12 @@ def normalize (src, base = 0.0, full = 1.0, dtype = float):
     img *= full / img.max()
   return img
 
+# zoom via OpenCV2
+# - this is a lot faster than scipy.ndimage.zoom
+# - interpolation is different than scipy.ndimage.zoom, but INTER_CUBIC works for our purpose
+def zoom_image (img, zoom):
+  return cv2.resize (img, dsize = None, fx = zoom, fy = zoom, interpolation = cv2.INTER_CUBIC)
+
 # local mean via OpenCV2
 def local_mean (img, win = config.mean_win):
   # https://docs.opencv.org/2.4-beta/modules/imgproc/doc/filtering.html?highlight=boxfilter#cv2.boxFilter
