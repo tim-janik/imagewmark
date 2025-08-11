@@ -176,7 +176,7 @@ def command_add (input_img, output_img, message_hex, strength, args):
       if vrep % 2:
         flipped = np.flip (flipped, 0)
       wmasked_rep[Lwsmall*vrep:Lwsmall*(vrep + 1), Lwsmall*hrep:Lwsmall*(hrep + 1)] = flipped
-  W = scipy.ndimage.zoom (wmasked_rep, ZOOM)
+  W = common.zoom_image (wmasked_rep, ZOOM)
   dprint ("ZOOM = %.5g, W.shape=%s, face.shape=%s" % (ZOOM, W.shape, face.shape))
   if config.will_plot ('Wmasked'):
     show (Ksmall=Ksmall,wmasked=wmasked, wmasked_rep=wmasked_rep, W=W)
