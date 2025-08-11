@@ -138,7 +138,7 @@ def main():
     dst.write (content)
 
   # crawl imagedir for files with an image extension
-  image_extensions = ['.gif', '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp']
+  image_extensions = ['.gif', '.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff', '.webp']
   input_image_filepaths = []
   for root, dirs, files in os.walk (imagedir):
     for filename in files:
