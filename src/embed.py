@@ -93,7 +93,8 @@ def add_wm (img, W, strength, args):
   if nchannels == 3:
     yiq_img[:,:,0] = dst / 255 # reassign Y channel
     dst = skimage.color.yiq2rgb (yiq_img) * 255
-  trace_quality (dither.round_pixels (img), dither.round_pixels (dst), W, args)
+  if args.trace_quality or args.trace_psnr:
+    trace_quality (dither.round_pixels (img), dither.round_pixels (dst), W, args)
   return dst
 
 # ADD
