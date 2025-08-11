@@ -91,6 +91,7 @@ def gen_key (keyfile, args):
 # parse args
 args = cli_parser().parse_args()
 config.verbose = args.verbose
+config.with_debug = args.verbose >= 2
 config.enable_plots (args.plots if 'plots' in args else '')
 args.startup_time = startup_time
 if hasattr (args, 'cornersync'):
