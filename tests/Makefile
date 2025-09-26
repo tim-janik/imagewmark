@@ -8,12 +8,13 @@ MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
 QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && echo "$$QOUT"; }; QECHO
-SRCDIR		?= $(dir $(MAKEFILE))/..
-WATERMARK	?= fedcba98765432100123456789abcdef
-MAINSEED	?= ddc1af1c64eedbd262dc8830d15b202a85185a47ddbdcd04e38f7743952c1253
 ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
 __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
+SRCDIR			?= $(dir $(MAKEFILE))/..
+WATERMARK		?= fedcba98765432100123456789abcdef
+MAINSEED		?= ddc1af1c64eedbd262dc8830d15b202a85185a47ddbdcd04e38f7743952c1253
+WITHOUT_ORIGINAL	?= false
 
 MAGICK_CONFIGURE_PATH != pwd
 export MAGICK_CONFIGURE_PATH
@@ -118,7 +119,7 @@ extract/%.json: attack/%
 	$(QECHO) GET $@
 	$Q mkdir -p $(dir $@)
 	$Q $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) $< --json > $@.tmp
-	$Q grep -qw "$(WATERMARK)" $@.tmp || { \
+	$Q $(WITHOUT_ORIGINAL) || grep -qw "$(WATERMARK)" $@.tmp || { \
 	  echo '  ALIGNED  ' $@ \
 	&& $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) $< --json \
 				--original inputs/$(notdir $(<:%.json=%))	 > $@.tmp ; }
@@ -170,7 +171,7 @@ test: all
 clean-attack:
 	rm -rf ../tests/attack/
 clean-extract:
-	rm -rf ../tests/extract/ ../tests/aligned/
+	rm -rf ../tests/extract/
 clean-reports:
 	rm -f *.tmp *.svg $(RESULT_REPORTS) report.md
 clean: clean-attack clean-extract clean-reports
