@@ -122,6 +122,7 @@ def main():
   parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
   parser.add_argument ("--seed", type = int, default = None, help = "Seed for random number generators")
+  parser.add_argument ("--without-original", action = "store_true", help = "Disable use of original image for detection.")
   args = parser.parse_args()
   seed = args.seed if args.seed is not None else random.randint (0, 2**32 - 1)
   random.seed (seed)
@@ -144,6 +145,7 @@ def main():
   with open (inmk, 'r+', encoding='utf-8') as src, open (outmk, 'w', encoding='utf-8') as dst:
     content = src.read()
     content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
+    content = re.sub (r'^WITHOUT_ORIGINAL\s*\?=.*', f'WITHOUT_ORIGINAL := {str (args.without_original).lower()}', content, 0, re.M)
     dst.write (content)
 
   # crawl imagedir for files with an image extension
