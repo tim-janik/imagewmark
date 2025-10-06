@@ -105,6 +105,15 @@ def generate_resolutions (resolution_icdf, resolution_min, resolution_max, num_s
     resolutions2d.append ((randreso, round (reso * reso / randreso)))
   return resolutions2d # generated_resolutions
 
+def symlink (target, link):
+  try: old = os.readlink (link)
+  except: old = ''
+  if old == target: return False
+  try: os.remove (link)
+  except: pass
+  os.symlink (target, link)
+  return True
+
 def main():
   # parse args
   parser = argparse.ArgumentParser (description = "Generate test case Makefile for Imagewmark.")
@@ -163,9 +172,11 @@ def main():
     dstname = os.path.join (inputsdir, imgname)
     rw, rh = resolutions2d[imgidx]
     target_sizes.append ((imgname, f"{rw}x{rh}"))
-    eprint ("adding image:", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
     # TODO: rescale if image is beyond 2k, for now always link
-    os.symlink (src_image_path, dstname)
+    if symlink (src_image_path, dstname):
+      eprint ("  SYMLINK", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
+    else:
+      eprint ("  KEEP   ", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
     imgcounter += 1
     if args.max_count > 0 and imgcounter > args.max_count:
       break

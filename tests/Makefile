@@ -159,7 +159,7 @@ all: $(RESULT_REPORTS)
 	$Q echo "MAINSEED:        " $(MAINSEED)
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
-	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
+	$Q echo "MATCHING:        " $$(grep -w "$(WATERMARK)" $(EXTRACT_FILES) | wc -l)
 	$Q ls -l $(abspath $(RESULT_REPORTS))
 
 # == test ==
