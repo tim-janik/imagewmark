@@ -81,6 +81,8 @@ Extract a watermark message from the image given as *INPUT_IMG*.
   : Number of raw peaks to use for grid (default: 250).
 `--jsd-threshold` *JSD_THRESHOLD*
   : Jensen-Shannon divergence threshold that is sufficient to stop searching for more watermarks (default: 55%).
+`--cornersync` {`on`,`off`,`auto`}
+  : Set cornersync aided detection mode: 'on' forces it, 'off' disables it, 'auto' is the default.
 `--perspective`
   : Search for optimal perspective grids (default: False).
 `--original` *ORIGINAL*
@@ -152,4 +154,3 @@ There is NO WARRANTY; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
 [**Imagewmark Website**](https://github.com/tim-janik/imagewmark) \
 [**"Local Geometric Distortions Resilient Watermarking Scheme Based on Symmetry"**](https://arxiv.org/abs/2007.10240)
 by Zehua Ma, Weiming Zhang, Han Fang, Xiaoyi Dong, Linfeng Geng, Nenghai Yu.
-

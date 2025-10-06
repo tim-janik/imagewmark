@@ -70,7 +70,7 @@ def cli_parser():
   getp.add_argument ('--norm-peak-count', type = int, default = config.norm_peak_count, help = "Number of normalized peaks to use for grid")
   getp.add_argument ('--raw-peak-count', type = int, default = config.raw_peak_count, help = "Number of raw peaks to use for grid")
   getp.add_argument ('--jsd-threshold', type = str, default = config.jsd_threshold, help = "Jensen-Shannon divergence threshold that is sufficient to stop searching for more watermarks")
-  getp.add_argument ('--cornersync', type = str, default='auto', help="Control corner sync mode. 'on' forces it, 'off' disables it.")
+  getp.add_argument ("--cornersync", choices = ['on', 'off', 'auto'], default = 'auto', help = "Set cornersync aided detection mode: 'on' forces it, 'off' disables it, 'auto' is the default.")
   getp.add_argument ('--perspective', action="store_true", help = "Search for optimal perspective grids")
   getp.add_argument ('--original', type = str, default = '', help = "Use original image for detection")
   add_common_args (getp, True)
@@ -95,8 +95,7 @@ config.with_debug = args.verbose >= 2
 config.enable_plots (args.plots if 'plots' in args else '')
 args.startup_time = startup_time
 if hasattr (args, 'cornersync'):
-  args.cornersync = -1 if args.cornersync.lower() == 'auto' else \
-      args.cornersync.lower().startswith (('on', 't', 'y', '1'  ))
+  args.cornersync = -1 if args.cornersync.lower() == 'auto' else args.cornersync.lower() == 'on'
 
 # Load Key and prepare Key based PRNGs
 if hasattr (args, 'key') or hasattr (args, 'test_key'):
