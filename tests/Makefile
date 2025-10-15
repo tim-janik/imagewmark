@@ -161,7 +161,6 @@ all: $(RESULT_REPORTS)
 	$Q echo "MAINSEED:        " $(MAINSEED)
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
-	$Q echo "MATCHING:        " $$(grep -w "$(WATERMARK)" $(EXTRACT_FILES) | wc -l)
 	$Q echo "MATCHING:        " $$(xargs -aEXTRACT_FILES.lst grep -w "$(WATERMARK)" | wc -l)
 	$Q rm -f EXTRACT_FILES.lst
 	$Q ls -l $(abspath $(RESULT_REPORTS))
