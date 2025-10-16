@@ -122,7 +122,6 @@ def command_add (input_img, output_img, message_hex, strength, args):
   Ldim = m_enc.shape[0]
   assert Ldim * Ldim == Lm
   dprint ("m (needs encoding):", "size=%d" % Lm, m_enc.shape, m_enc.min(), '...', m_enc.max());
-  # TODO: Key-Randomize message bit positions in watermark
 
   # generate random matrix `r` (bp_r)
   Lr, bp_r = common.make_wm_pattern (config.DEFAULT_KEY)

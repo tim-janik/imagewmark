@@ -48,7 +48,6 @@ def estimate_watermark (face_J, orig_J, strength, window):
     J_delta = face_J - J_mean                             # J´ = J - µ
   else:
     J_delta = face_J - orig_J
-  # TODO: ensure J_delta always != 0
   dprint ("J_delta:", J_delta.shape, J_delta.min(), '...', J_delta.max())
   if config.will_plot ('MSCN'): # MSCN = Mean Substracted Contrast Normalization
     show (J=face_J, J_mean=J_mean, J_var=J_var, J_delta=J_delta)
@@ -115,7 +114,7 @@ def find_peaks (S2_uni, S2j, window):
   S2M_mean = common.local_mean (S2M_uni, window)  # µ_S´ = local mean of S´
   dprint ("S2M_mean:", S2M_mean.shape, S2M_mean.min(), '...', S2M_mean.max())
   S2M_std = np.std (S2M_uni)                      # standard deviation of S´ - "σ²_S´"
-  dprint ("S2M_std:", S2M_std.shape, S2M_std.min(), '...', S2M_std.max()) # TODO: useless
+  dprint ("S2M_std:", S2M_std.shape, S2M_std.min(), '...', S2M_std.max())
   S2M_var = S2M_std ** 2                          # global variance of S´ - "σ²_S´"
   # S2M_var = common.local_variance (S2M_uni, S2M_uni.shape) # global variance of S´ - "σ²_S´"
   # dprint ("S2M_var:", S2M_var.shape, S2M_var.min(), '...', S2M_var.max())
@@ -507,7 +506,7 @@ def watermark_from_grid (grid, uz, LR, Ldim, Lwu, face_J, orig_J, wmasked_up, W_
   # skip decoding step if minimum ws_score is not reached
   wmi = None
   if ws_score >= min_ws_score:
-    wmi = pixels_to_watermark (ws_Y, ws_score, conv_decoder, args) # TODO: when this becomes too expensive, run once per grid list
+    wmi = pixels_to_watermark (ws_Y, ws_score, conv_decoder, args)
     # add statistics
     wmi['regularity'] = grid.features['regularity']
     wmi['coverage'] = coverage
@@ -836,7 +835,6 @@ def watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xp
   wmi_time = args.startup_time
 
   # Detect lists of grids with decreasing regularity
-  # TODO: for testing we use either peaks2grid or cornersync, but for the final version we should use both
   for grid_list in grid_lists:
     # peaks2grid can send us empty grid lists?
     if len (grid_list) < 1:
@@ -876,6 +874,3 @@ def watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xp
 
   done = best_jsd > jsd_window_threshold or done_expecting
   return wmi_list, done
-  # TODO: Xsum = Bsum ^ m_enc
-  # TODO: dprint ("Xsum:", Xsum.shape, Xsum.min(), '...', Xsum.max())
-  # TODO:   show (title = "Summarized Top 8", Ysum=Ysum, Bsum=Bsum, m=m_enc, xor=Xsum)
