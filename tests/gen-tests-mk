@@ -123,6 +123,7 @@ def main():
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
   parser.add_argument ("--seed", type = int, default = None, help = "Seed for random number generators")
   parser.add_argument ("--without-original", action = "store_true", help = "Disable use of original image for detection.")
+  parser.add_argument ("--cornersync", choices = ['on', 'off', 'auto'], default = 'auto', help = "Set cornersync aided detection mode (on|off|auto).")
   args = parser.parse_args()
   seed = args.seed if args.seed is not None else random.randint (0, 2**32 - 1)
   random.seed (seed)
@@ -146,6 +147,7 @@ def main():
     content = src.read()
     content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
     content = re.sub (r'^WITHOUT_ORIGINAL\s*\?=.*', f'WITHOUT_ORIGINAL := {str (args.without_original).lower()}', content, 0, re.M)
+    content = re.sub (r'^CORNERSYNC_MODE\s*\?=.*', f'CORNERSYNC_MODE := {str (args.cornersync).lower()}', content, 0, re.M)
     dst.write (content)
 
   # crawl imagedir for files with an image extension
