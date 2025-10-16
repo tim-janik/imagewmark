@@ -182,8 +182,3 @@ clean-reports:
 	rm -f *.tmp *.svg $(RESULT_REPORTS) report.md
 clean: clean-attack clean-extract clean-reports
 	rm -rf ../tests/wmarked/ ../tests/inputs/
-
-# TODO: json: prefix imagewmark get results with image file name
-# TODO: json: add filename field
-# TODO: json: add single 'watermark' and 'confidence' field
-# TODO: add timings, PSNR
