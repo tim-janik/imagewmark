@@ -88,7 +88,7 @@ j90scaleto512j70	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto
 j90scaleto768j90	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:90" $< $@.png && mv $@.png $@
 j90scaleto768j70	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:70" $< $@.png && mv $@.png $@
 j90scaleto768j50	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:50" $< $@.png && mv $@.png $@
-j90randomsizej80	= convert $< -quality 90 $@.1.jpg && convert $@.1.jpg -resize $(RANDOMSIZE) -quality 80 $@.2.jpg && rm $@.1.jpg && mv $@.2.jpg $@
+j90randomsizej80	= convert $< -quality 90 $@.1.jpg && convert $@.1.jpg -resize $(RANDOMSIZE)! -quality 80 $@.2.jpg && rm $@.1.jpg && mv $@.2.jpg $@
 # centered cropping (detectable by corner sync)
 crop75j90		= convert $< -gravity Center -crop 75x75%+0+0 -quality 90	$@.jpg && mv $@.jpg $@
 crop50scale200j90	= convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	$@.jpg && mv $@.jpg $@
