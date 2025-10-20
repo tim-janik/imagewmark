@@ -121,7 +121,7 @@ For testing and benchmarking watermarking robustness after code changes, the fol
   Dataset with millions of diverse images.
 
 - [**ImageCompression.info**](https://imagecompression.info/test_images/):
-  High-resolution, high-precision images selected for image research, RGB/gray, 16-bit.
+  High-resolution, high-precision images by rawzor.com selected for image research, RGB/gray, 16-bit.
   Designed to stress different algorithm aspects, photographic content, 3D-generated scenes, film scans, night shots.
 
 Testing on a wide variety of images helps to quantify watermarking improvements or to
