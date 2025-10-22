@@ -101,8 +101,11 @@ def generate_resolutions (resolution_icdf, resolution_min, resolution_max, num_s
   # Generate 2D resolutions based on the resolution areas and aspect ratio range
   resolutions2d = []
   for reso in generated_resolutions:
-    randreso = np.random.randint (round (reso * min_ratio), round (reso * max_ratio) + 1)
-    resolutions2d.append ((randreso, round (reso * reso / randreso)))
+    total_pixels = reso * reso
+    ratio = random.uniform (min_ratio, max_ratio)
+    width  = int (round (np.sqrt (total_pixels * ratio)))
+    height = int (round (np.sqrt (total_pixels / ratio)))
+    resolutions2d.append ((width, height))
   return resolutions2d # generated_resolutions
 
 def symlink (target, link):
