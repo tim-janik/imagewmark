@@ -103,8 +103,8 @@ def generate_resolutions (resolution_icdf, resolution_min, resolution_max, num_s
   for reso in generated_resolutions:
     total_pixels = reso * reso
     ratio = random.uniform (min_ratio, max_ratio)
-    width  = int (round (np.sqrt (total_pixels * ratio)))
-    height = int (round (np.sqrt (total_pixels / ratio)))
+    width  = round (np.sqrt (total_pixels * ratio))
+    height = round (np.sqrt (total_pixels / ratio))
     resolutions2d.append ((width, height))
   return resolutions2d # generated_resolutions
 
