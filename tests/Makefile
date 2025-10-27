@@ -14,8 +14,9 @@ __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
 SRCDIR			?= $(dir $(MAKEFILE))/..
 WATERMARK		?= fedcba98765432100123456789abcdef
 MAINSEED		?= ddc1af1c64eedbd262dc8830d15b202a85185a47ddbdcd04e38f7743952c1253
+ATTACKS			?= $(DEFAULT_ATTACKS)
 WITHOUT_ORIGINAL	?= false
-CORNERSYNC_MODE	?= auto
+CORNERSYNC_MODE		?= auto
 
 MAGICK_CONFIGURE_PATH != pwd
 export MAGICK_CONFIGURE_PATH
@@ -67,15 +68,17 @@ wmarked/%: inputs/%
 .NOTINTERMEDIATE: $(WMARKED_IMAGES)
 
 # == attack/ ==
-# jpeg	  	echo "jpeg:90 jpeg:70 jpeg:50 jpeg:30"
-# rotation	  echo "rotate:5:15|jpeg:90 rotate:0:180|jpeg:90"
-# cropping	  echo "crop:25:25|jpeg:90 crop:50:50|jpeg:90 crop:75:75|jpeg:90 crop:90:90|jpeg:90"
-# upscaling + jpeg	  echo "crop:75:95|scale:100:200|jpeg:90"
-ATTACKS := jpg30 jpg50 jpg70 jpg90 noise noisej90 j90scaleto512j90 j90scaleto512j70 \
-	j90scaleto768j90 j90scaleto768j70 j90scaleto768j50 j90randomsizej80 \
-	crop75j90 crop50scale200j90 noisecrop50scale200j90 noise2crop50scale200j90
+# jpeg			echo "jpeg:90 jpeg:70 jpeg:50 jpeg:30"
+# rotation		echo "rotate:5:15|jpeg:90 rotate:0:180|jpeg:90"
+# cropping		echo "crop:25:25|jpeg:90 crop:50:50|jpeg:90 crop:75:75|jpeg:90 crop:90:90|jpeg:90"
+# upscaling + jpeg	echo "crop:75:95|scale:100:200|jpeg:90"
+DEFAULT_ATTACKS := $(strip	\
+	jpg30 jpg50 jpg70 jpg90 noise noisej90 j90scaleto512j90 j90scaleto512j70	\
+	j90scaleto768j90 j90scaleto768j70 j90scaleto768j50 j90randomsizej80		\
+	crop75j90 crop50scale200j90 noisecrop50scale200j90 noise2crop50scale200j90	\
+)
 ifneq ($(CORNERSYNC_MODE),on)
-ATTACKS += rot5to15j90 rot0to180j90 j90crop50scaleto512j90 j90crop60scaleto512j70
+DEFAULT_ATTACKS += rot5to15j90 rot0to180j90 j90crop50scaleto512j90 j90crop60scaleto512j70
 endif
 jpg30			= convert $<			-quality 30		$@.jpg && mv $@.jpg $@
 jpg50			= convert $<			-quality 50		$@.jpg && mv $@.jpg $@
