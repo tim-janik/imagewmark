@@ -125,7 +125,7 @@ EXTRACT_FILES := $(ATTACK_IMAGES:attack/%=extract/%.json)
 extract/%.json: attack/%
 	$(QECHO) GET $@
 	$Q mkdir -p $(dir $@)
-	$Q $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) $< --json > $@.tmp
+	$Q $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) --cornersync $(CORNERSYNC_MODE) $< --json > $@.tmp
 	$Q $(WITHOUT_ORIGINAL) || grep -qw "$(WATERMARK)" $@.tmp || { \
 	  echo '  ALIGNED  ' $@ \
 	&& $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) $< --json \

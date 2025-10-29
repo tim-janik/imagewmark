@@ -726,17 +726,16 @@ def extract_from_grey (face_J, orig_J, strength, args):
   # succeed with auto convolution even if the first window size did not work.
   #
   # In case face_J could be aligned to the unwatermarked original image, there is little
-  # use for synchronization via auto convolution, so we only use corner sync.
-  if args.cornersync >= 1:
-    sync_list = [ (window_size, True) for window_size in config.extract_window_size ]
-  elif args.cornersync == 0:
+  # use for synchronization via auto convolution, so we only use corner sync by default.
+  if args.cornersync >= 1:      # cornersync=on
+    sync_list = [ (config.extract_window_size[0], True) ]
+  elif args.cornersync == 0:    # cornersync=off: ACNF
     sync_list = [ (window_size, False) for window_size in config.extract_window_size ]
-  else:  # args.cornersync < 0: auto
-    if orig_J is None:            # blind decoding
-      sync_list = [ (window_size, False) for window_size in config.extract_window_size ]
-      sync_list.insert (1, (config.extract_window_size[0], True))
-    else:                         # decode with aligned original
-      sync_list = [ (config.extract_window_size[0], True) ]
+  elif orig_J is not None:      # cornersync=auto, orig_J: decode with aligned original
+    sync_list = [ (config.extract_window_size[0], True) ]
+  else:                         # cornersync=auto, !orig_J (blind decoding)
+    sync_list = [ (window_size, False) for window_size in config.extract_window_size ]
+    sync_list.insert (1, (config.extract_window_size[0], True)) # insert cornersync after first window size
   wmi_list = []
   for (window_size, use_corner_sync) in sync_list:
     win_wmi_list, done = detect_watermark_with_window (face_J, orig_J, strength, args, (window_size, window_size), wmasked, use_corner_sync, conv_decoder)
