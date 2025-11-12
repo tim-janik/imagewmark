@@ -99,6 +99,8 @@ if hasattr (args, 'cornersync'):
 
 # Load Key and prepare Key based PRNGs
 if hasattr (args, 'key') or hasattr (args, 'test_key'):
+  if not args.test_key and not args.key:
+    args.test_key = config.DEFAULT_KEY
   common.load_key (args.key, args.test_key)
 
 # command handling

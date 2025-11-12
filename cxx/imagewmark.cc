@@ -48,23 +48,6 @@ getarg (const char *argname, String &s, const char **argv, int &i)
   return false;
 }
 
-static bool
-getarg (const char *argname, long long &ll, const char **argv, int &i)
-{
-  String s;
-  if (getarg (argname, s, argv, i))
-    {
-      char *e = nullptr;
-      ll = strtoll (s.c_str(), &e, 0);
-      if (e && e[0]) {
-        dprintf (2, "invalid decimal: %s\n", s.c_str());
-        exit (1);
-      }
-      return true;
-    }
-  return false;
-}
-
 const char *argv0 = nullptr;
 
 int
@@ -74,13 +57,12 @@ main (int argc, const char *argv[])
   // parse args
   std::vector<String> args;
   String s;
-  long long ll;
   for (int i = 1; argv[i]; i++)
     {
       if (getarg ("--key", s, argv, i))
         Random::load_global_key (s);
-      else if (getarg ("--test-key", ll, argv, i))
-        Random::set_global_test_key (ll);
+      else if (getarg ("--test-key", s, argv, i))
+        Random::set_global_test_key (s);
       else
         args.push_back (argv[i]);
     }

@@ -148,7 +148,7 @@ def F (img_variance, strength):
   return np.maximum (strength, np.log2 (img_std))
 
 # generate random matrix `r` (bp_r)
-def make_wm_pattern (ENCRYPTION_KEY):
+def make_wm_pattern():
   Lr = config.Lr
   Rshake = prng_gen ("wm_pattern", (Lr * Lr + 7) // 8)  # hashlib.shake_256 (b'Rshake' + ENCRYPTION_KEY).digest ((Lr * Lr + 7) // 8)
   Rbits = np.unpackbits (np.array ([b for b in Rshake], dtype = np.uint8))
@@ -162,7 +162,7 @@ def make_wm_pattern (ENCRYPTION_KEY):
   return (Lr, bp_r)
 
 # Generate key-dependent randomized matrix Ksmall
-def make_wm_mask (ENCRYPTION_KEY, Lks):
+def make_wm_mask (Lks):
   Kshake = prng_gen ("wm_mask", Lks * Lks // 8)         # hashlib.shake_256 (b'Kshake' + ENCRYPTION_KEY).digest (Lks * Lks // 8)
   Kbits = np.array ([b for b in Kshake], dtype = np.uint8).reshape (Lks, Lks // 8)
   Kbits = np.unpackbits (Kbits, axis = 1) # Key based random matrix
