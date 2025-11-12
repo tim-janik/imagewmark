@@ -1,3 +1,9 @@
+## Imagewmark NEXT:
+
+### Breaking:
+* The default key for Watermark encoding has changed, it was previously unset
+
+
 ## Imagewmark 0.5.0:
 
 ### Added:
