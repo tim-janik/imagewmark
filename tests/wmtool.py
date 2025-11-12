@@ -136,6 +136,34 @@ def attack_aspect (img, amin, amax):
   return cv2.resize (img, (width, height))
 
 epilog += """
+* aspect-resize:<width>:<height>
+
+  change aspect ratio of the image, avoiding extreme aspect ratio changes
+  if aspect ratio change is in 9:16..16:9
+    - rescale to <width> x <height> pixels
+  if aspect ratio change is extreme (outside 9:16..16:9)
+    - rescale to <height> x <width> pixels unless this is even more extreme
+
+  this is mainly a helper for the j90randomsizej80 attack of gen-tests-mk
+"""
+def attack_aspect_resize (img, width, height):
+  def aspect_delta (old_size, new_size):
+    delta = (old_size[0] / old_size[1]) / (new_size[0] / new_size[1])
+    if (delta < 1):
+      delta = 1 / delta
+    return delta
+  old_height, old_width = img.shape[0], img.shape[1]
+  delta = aspect_delta ((old_width, old_height), (width, height))
+  delta_swap = aspect_delta ((old_width, old_height), (height, width))
+  if delta > 16/9 and delta_swap < delta:
+    width, height = height, width
+    swap = " (swap)"
+  else:
+    swap = ""
+  print_attack ("ATTACK aspect-resize %dx%d to %dx%d%s" % (old_width, old_height, width, height, swap))
+  return cv2.resize (img, (width, height))
+
+epilog += """
 ------------------------------------------------------------------------------
 Example:
  - crop image to 75%..95% of its pixels
@@ -228,6 +256,8 @@ if (args.attack):
       face = attack_rotate (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "aspect" and len (aargs) == 3:
       face = attack_aspect (face, int (aargs[1]), int (aargs[2]))
+    elif aargs[0] == "aspect-resize" and len (aargs) == 3:
+      face = attack_aspect_resize (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "none" and len (aargs) == 1:
       pass
     else:
