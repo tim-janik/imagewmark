@@ -68,7 +68,7 @@ public:
       }
   }
 
-  static void        set_global_test_key (uint64_t seed);
+  static void        set_global_test_key (std::string testkey);
   static void        load_global_key (const std::string& key_file);
   static std::string gen_key();
 };

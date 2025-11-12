@@ -167,9 +167,14 @@ Random::die_on_error (const char *func, gcry_error_t err)
 }
 
 void
-Random::set_global_test_key (uint64_t key)
+Random::set_global_test_key (std::string testkey)
 {
-  uint64_to_buffer (key, &aes_key[0]);
+  vector<unsigned char> key = hex_str_to_vec (testkey);
+  if (key.size() == 0)
+    die (5, "invalid test-key\n");
+  if (key.size() != aes_key.size())
+    die (5, "wrong key length for test-key (%zd), required key length is %zd bits\n", key.size() * 8, aes_key.size() * 8);
+  aes_key = key;
 }
 
 void
