@@ -150,7 +150,7 @@ def F (img_variance, strength):
 # generate random matrix `r` (bp_r)
 def make_wm_pattern():
   Lr = config.Lr
-  Rshake = prng_gen ("wm_pattern", (Lr * Lr + 7) // 8)  # hashlib.shake_256 (b'Rshake' + ENCRYPTION_KEY).digest ((Lr * Lr + 7) // 8)
+  Rshake = prng_gen ("wm_pattern", (Lr * Lr + 7) // 8)
   Rbits = np.unpackbits (np.array ([b for b in Rshake], dtype = np.uint8))
   dprint ("Rbits:", Rbits.shape, Rbits.min(), '...', Rbits.max(), Rbits);
   bp_r = np.empty ((Lr, Lr), dtype = float)
@@ -163,7 +163,7 @@ def make_wm_pattern():
 
 # Generate key-dependent randomized matrix Ksmall
 def make_wm_mask (Lks):
-  Kshake = prng_gen ("wm_mask", Lks * Lks // 8)         # hashlib.shake_256 (b'Kshake' + ENCRYPTION_KEY).digest (Lks * Lks // 8)
+  Kshake = prng_gen ("wm_mask", Lks * Lks // 8)
   Kbits = np.array ([b for b in Kshake], dtype = np.uint8).reshape (Lks, Lks // 8)
   Kbits = np.unpackbits (Kbits, axis = 1) # Key based random matrix
   Ksmall = Kbits * -2.0 + 1   # bipolar float matrix: [[1 -1 -1 1 1 -1 1 -1]...]
