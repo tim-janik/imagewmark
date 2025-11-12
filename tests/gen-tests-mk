@@ -181,7 +181,7 @@ def main():
     imgname = 'img%05u' % imgcounter
     dstname = os.path.join (inputsdir, imgname)
     rw, rh = resolutions2d[imgidx]
-    target_sizes.append ((imgname, f"{rw}x{rh}"))
+    target_sizes.append ((imgname, f"{rw}:{rh}"))
     if symlink (src_image_path, dstname):
       eprint ("  SYMLINK", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
     else:
