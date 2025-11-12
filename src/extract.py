@@ -693,7 +693,7 @@ def extract_from_grey (face_J, orig_J, strength, args):
   Ldim = config.payload_shape[0]
 
   # generate random matrix `r` (bp_r)
-  Lr, bp_r = common.make_wm_pattern (config.DEFAULT_KEY)
+  Lr, bp_r = common.make_wm_pattern()
 
   # generate expected watermark unit
   Lwsmall = Ldim * Lr
@@ -704,7 +704,7 @@ def extract_from_grey (face_J, orig_J, strength, args):
       wmunit[lj:lj+Lr, li:li+Lr] = bp_r
 
   # Generate key-dependent randomized matrix Ksmall used for watermark masking
-  Ksmall = common.make_wm_mask (config.DEFAULT_KEY, Lwsmall)
+  Ksmall = common.make_wm_mask (Lwsmall)
 
   # mask wmunit with Ksmall
   wmasked = wmunit * Ksmall

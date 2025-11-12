@@ -124,7 +124,7 @@ def command_add (input_img, output_img, message_hex, strength, args):
   dprint ("m (needs encoding):", "size=%d" % Lm, m_enc.shape, m_enc.min(), '...', m_enc.max());
 
   # generate random matrix `r` (bp_r)
-  Lr, bp_r = common.make_wm_pattern (config.DEFAULT_KEY)
+  Lr, bp_r = common.make_wm_pattern()
 
   # generate watermark unit by spread-spectrum encoding m_enc with bp_r
   Lwsmall = Ldim * Lr
@@ -134,7 +134,7 @@ def command_add (input_img, output_img, message_hex, strength, args):
       lj = j * Lr; li = i * Lr
       wmunit[lj:lj+Lr, li:li+Lr] = bp_r if m_enc[j,i] else -bp_r
   # Generate key-dependent randomized matrix Ksmall
-  Ksmall = common.make_wm_mask (config.DEFAULT_KEY, Lwsmall)
+  Ksmall = common.make_wm_mask (Lwsmall)
 
   dprint ("wmunit:", wmunit.shape, wmunit.min(), '...', wmunit.max());
   if config.will_plot ('WMunit'):
