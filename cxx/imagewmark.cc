@@ -4,7 +4,6 @@
 #include "convcode.hh"
 #include <sys/stat.h>
 #include <stdio.h>
-#include <CLI/CLI.hpp>
 
 static void     image_info (const String &input);
 static void     convert_image (const String &input, const String &output, const String &bits);
@@ -53,11 +52,8 @@ main (int argc, char *argv[])
   cmd_get->add_option ("inputimage", get_input, "Input image")->required();
 
   // ADD <inimage> <outimage> <wmark>
-  std::string add_input, add_output, add_wmark;
-  auto *cmd_add = app.add_subcommand ("add", "Add watermark to image");
-  cmd_add->add_option ("inimage", add_input, "Input image")->required();
-  cmd_add->add_option ("outimage", add_output, "Output image")->required();
-  cmd_add->add_option ("wmark", add_wmark, "Watermark bits")->required();
+  AddOptions add_options;
+  CLI::App *cmd_add = imagewmark_add_options (app, add_options);
 
   // RAND
   auto *cmd_rand = app.add_subcommand ("rand", "Internal key based PRNG");
@@ -118,7 +114,7 @@ main (int argc, char *argv[])
   } else if (cmd_get->parsed()) {
     image_info (get_input);
   } else if (cmd_add->parsed()) {
-    convert_image (add_input, add_output, add_wmark);
+    return imagewmark_add (add_options);
   } else if (cmd_rand->parsed()) {
     const std::pair<Random::Stream, const char *> streams[] = { { Random::Stream::wm_pattern, "wm_pattern" },
                                                                 { Random::Stream::wm_mask, "wm_mask" },
