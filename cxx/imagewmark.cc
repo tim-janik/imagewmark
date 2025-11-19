@@ -4,157 +4,146 @@
 #include "convcode.hh"
 #include <sys/stat.h>
 #include <stdio.h>
+#include <CLI/CLI.hpp>
 
 static void     image_info (const String &input);
 static void     convert_image (const String &input, const String &output, const String &bits);
 
-static void
-usage (int code)
-{
-  printf ("Usage: %s [options] <command> <args...>\n", argv0);
-  printf ("Options:\n");
-  printf ("  --key <file>          Load watermarking key from file\n");
-  printf ("  --test-key <hex>      Specify test key (for debugging only, insecure)\n");
-  printf ("Commands:\n");
-  printf ("  GET <inputimage>      Extract watermarks from image\n");
-  printf ("  ADD <inimage> <outimage> <wmark>\n");
-  printf ("                        Add watermark to image\n");
-  printf ("  GEN-KEY <keyfile>     Generate 128-bit watermarking key\n");
-  printf ("  RAND                  Internal key based PRNG\n");
-  exit (code);
-}
-
-static bool
-getarg (const char *argname, String &s, const char **argv, int &i)
-{
-  if (!argname || i < 0 || !argv || !argv[i])
-    return false;
-  String a = argname;
-  if (a == argv[i])
-    {
-      if (argv[i + 1])
-        {
-          s = argv[++i];
-          return true;
-        }
-      return false;
-    }
-  const unsigned l = strlen (argv[i]);
-  if (l > a.size() && argv[i][a.size()] == '=')
-    {
-      s = argv[i] + a.size() + 1;
-      return true;
-    }
-  return false;
-}
-
 const char *argv0 = nullptr;
 
 int
-main (int argc, const char *argv[])
+main (int argc, char *argv[])
 {
   argv0 = argv[0]; // used for error handling
-  // parse args
-  std::vector<String> args;
-  String s;
-  for (int i = 1; argv[i]; i++)
-    {
-      if (getarg ("--key", s, argv, i))
-        Random::load_global_key (s);
-      else if (getarg ("--test-key", s, argv, i)) {
-        while (s.size() < 32)
-          s = "0" + s; // expand to 128bit
-        Random::set_global_test_key (s);
-      } else
-        args.push_back (argv[i]);
-    }
-  // handle commands
-  if (args.size() == 1 && args[0] == "convcode-test")
-    {
-      convcode_test ();
-      return 0;
-    }
-  else if (args.size() == 1 && args[0] == "convcode-check")
-    {
-      convcode_check ();
-      return 0;
-    }
-  else if (args.size() == 1 && args[0] == "convcode-encode")
-    {
-      for (;;)
-        {
-          const std::vector<float> bits = read_stdin_bits ();
-          if (bits.empty())
-            return 0;
 
-          for (auto b : convcode_encode (bits))
-            printf ("bit %d\n", b);
-          printf ("end\n");
-          fflush (stdout);
-        }
-    }
-  else if (args.size() == 1 && args[0] == "convcode-decode")
-    {
-      for (;;)
-        {
-          const std::vector<float> bits = read_stdin_bits ();
-          if (bits.empty())
-            return 0;
+  CLI::App app { "imagewmark - Image Watermarking Tool" };
+  app.ignore_case(); // Allow case-insensitive subcommands (e.g., GEN-KEY vs gen-key)
+  app.require_subcommand (1); // Require at least one command to be present
+  app.fallthrough(); // Allow global options as part of subcommands
 
-          double normalized_error = 0;
-          for (auto b : convcode_decode (bits, &normalized_error))
-            printf ("bit %d\n", b);
-          printf ("error %f\n", normalized_error);
-          printf ("end\n");
-          fflush (stdout);
-        }
+  // --- Global Options ---
+  std::string key_file;
+  app.add_option ("--key", key_file, "Load watermarking key from file");
+
+  std::string test_key;
+  app.add_option ("--test-key", test_key, "Specify test key (for debugging only, insecure)");
+
+  // --- Subcommands ---
+
+  // convcode-test
+  auto *cmd_test = app.add_subcommand ("convcode-test", "Run convcode tests");
+
+  // convcode-check
+  auto *cmd_check = app.add_subcommand ("convcode-check", "Run convcode checks");
+
+  // convcode-encode
+  auto *cmd_encode = app.add_subcommand ("convcode-encode", "Encode bits from stdin");
+
+  // convcode-decode
+  auto *cmd_decode = app.add_subcommand ("convcode-decode", "Decode bits from stdin");
+
+  // GEN-KEY <keyfile>
+  std::string gen_key_outfile;
+  auto *cmd_gen_key = app.add_subcommand ("gen-key", "Generate 128-bit watermarking key");
+  cmd_gen_key->add_option ("keyfile", gen_key_outfile, "Output key file")->required();
+
+  // GET <inputimage>
+  std::string get_input;
+  auto *cmd_get = app.add_subcommand ("get", "Extract watermarks from image");
+  cmd_get->add_option ("inputimage", get_input, "Input image")->required();
+
+  // ADD <inimage> <outimage> <wmark>
+  std::string add_input, add_output, add_wmark;
+  auto *cmd_add = app.add_subcommand ("add", "Add watermark to image");
+  cmd_add->add_option ("inimage", add_input, "Input image")->required();
+  cmd_add->add_option ("outimage", add_output, "Output image")->required();
+  cmd_add->add_option ("wmark", add_wmark, "Watermark bits")->required();
+
+  // RAND
+  auto *cmd_rand = app.add_subcommand ("rand", "Internal key based PRNG");
+
+  // --- Parse Arguments ---
+  CLI11_PARSE (app, argc, argv);
+
+  // --- Handle Global Options ---
+  if (!key_file.empty()) {
+    Random::load_global_key (key_file);
+  } else if (!test_key.empty()) {
+    std::string s = test_key;
+    while (s.size() < 32)
+      s = "0" + s; // expand to 128bit
+    Random::set_global_test_key (s);
+  }
+
+  // --- Handle Commands ---
+  if (cmd_test->parsed()) {
+    convcode_test();
+    return 0;
+  } else if (cmd_check->parsed()) {
+    convcode_check();
+    return 0;
+  } else if (cmd_encode->parsed()) {
+    for (;;) {
+      const std::vector<float> bits = read_stdin_bits();
+      if (bits.empty())
+        return 0;
+
+      for (auto b : convcode_encode (bits))
+        printf ("bit %d\n", b);
+      printf ("end\n");
+      fflush (stdout);
     }
-  else if (args.size() == 2 && string_tolower (args[0]) == "gen-key")
-    {
-      const String outfile = args[1];
-      FILE *f = fopen (outfile.c_str(), "w");
-      if (!f || fchmod (fileno (f), 0600) < 0 || // secret key file must only user-readable
-          fprintf (f, "# watermarking key for imagewmark\n\nkey %s\n", Random::gen_key().c_str()) < 0 ||
-          fclose (f) < 0)
-        die (5, "failed to create `%s`: %s\n", outfile.c_str(), strerror (errno));
+  } else if (cmd_decode->parsed()) {
+    for (;;) {
+      const std::vector<float> bits = read_stdin_bits();
+      if (bits.empty())
+        return 0;
+
+      double normalized_error = 0;
+      for (auto b : convcode_decode (bits, &normalized_error))
+        printf ("bit %d\n", b);
+      printf ("error %f\n", normalized_error);
+      printf ("end\n");
+      fflush (stdout);
     }
-  else if (args.size() == 2 && string_tolower (args[0]) == "get")
-    {
-      const String input = args[1];
-      image_info (input);
-    }
-  else if (args.size() == 4 && string_tolower (args[0]) == "add")
-    {
-      const String input = args[1], output = args[2], bits = args[3];
-      convert_image (input, output, bits);
-    }
-  else if (args.size() == 1 && string_tolower (args[0]) == "rand")
-    {
-      const std::pair<Random::Stream,const char*> streams[] = { { Random::Stream::wm_pattern, "wm_pattern" },
+  } else if (cmd_gen_key->parsed()) {
+    FILE *f = fopen (gen_key_outfile.c_str(), "w");
+    if (!f || fchmod (fileno (f), 0600) < 0 || // secret key file must only user-readable
+        fprintf (f, "# watermarking key for imagewmark\n\nkey %s\n", Random::gen_key().c_str()) < 0 ||
+        fclose (f) < 0)
+      die (5, "failed to create `%s`: %s\n", gen_key_outfile.c_str(), strerror (errno));
+  } else if (cmd_get->parsed()) {
+    image_info (get_input);
+  } else if (cmd_add->parsed()) {
+    convert_image (add_input, add_output, add_wmark);
+  } else if (cmd_rand->parsed()) {
+    const std::pair<Random::Stream, const char *> streams[] = { { Random::Stream::wm_pattern, "wm_pattern" },
                                                                 { Random::Stream::wm_mask, "wm_mask" },
-                                                                { Random::Stream::wm_convcode, "wm_convcode" } };
-      const size_t n_streams = sizeof (streams) / sizeof (streams[0]);
-      const size_t L = 4096;
-      std::string s;
-      s += "{\n";
-      for (size_t i = 0; i < n_streams; i++) {
-        Random r (0, streams[i].first);
-        s += "  \"" + std::string (streams[i].second) + "\": [";
-        for (size_t j = 0; j < L; j += sizeof (uint64_t)) {
-          char buffer[100] = { 0, };
-          const uint64_t b = htobe64 (r()); // big endian
-          snprintf (buffer, sizeof (buffer) - 1, "%u,%u,%u,%u,%u,%u,%u,%u,", uint8_t (b >> 56), uint8_t (b >> 48), uint8_t (b >> 40), uint8_t (b >> 32), uint8_t (b >> 24), uint8_t (b >> 16), uint8_t (b >> 8), uint8_t (b));
-          s += buffer;
-        }
-        s.pop_back(); // remove trailing comma
-        s += "],\n";
+                                                                { Random::Stream::wm_convcode, "wm_convcode" }
+    };
+    const size_t n_streams = sizeof (streams) / sizeof (streams[0]);
+    const size_t L = 4096;
+    std::string s;
+    s += "{\n";
+    for (size_t i = 0; i < n_streams; i++) {
+      Random r (0, streams[i].first);
+      s += "  \"" + std::string (streams[i].second) + "\": [";
+      for (size_t j = 0; j < L; j += sizeof (uint64_t)) {
+        char buffer[100] = { 0, };
+        const uint64_t b = htobe64 (r()); // big endian
+        snprintf (buffer, sizeof (buffer) - 1, "%u,%u,%u,%u,%u,%u,%u,%u,", uint8_t (b >> 56), uint8_t (b >> 48), uint8_t (b >> 40), uint8_t (b >> 32), uint8_t (b >> 24), uint8_t (b >> 16), uint8_t (b >> 8), uint8_t (b));
+        s += buffer;
       }
-      s.pop_back(); s.pop_back(); s += '\n'; // remove trailing comma
-      s += "}";
-      printf ("%s\n", s.c_str());
+      s.pop_back(); // remove trailing comma
+      s += "],\n";
     }
-  else
-    usage (0);
+    s.pop_back();
+    s.pop_back();
+    s += '\n'; // remove trailing comma
+    s += "}";
+    printf ("%s\n", s.c_str());
+  }
+
   return 0;
 }
 
@@ -175,7 +164,7 @@ image_info (const String &input)
   img.comment = spec.get_string_attribute ("ImageDescription", ""); // JPEG, TIFF
   if (img.comment.empty())
     img.comment = spec.get_string_attribute ("Comment", ""); // PNG
-  inp->close ();
+  inp->close();
 
   printf ("%s:\n", input.c_str());
   printf ("size: %dx%d\n", img.width, img.height);
@@ -219,13 +208,12 @@ convert_image (const String &input, const String &output, const String &bits)
   std::vector<int> bitvec = bit_str_to_vec (bits);
   if (bitvec.empty())
     die (5, "failed to parse bits: %s", bits.c_str());
-  if (bitvec.size() < payload_size)
-    {
-      std::vector<int> expanded_bitvec;
-      for (size_t i = 0; i < payload_size; i++)
-        expanded_bitvec.push_back (bitvec[i % bitvec.size()]);
-      bitvec = expanded_bitvec;
-    }
+  if (bitvec.size() < payload_size) {
+    std::vector<int> expanded_bitvec;
+    for (size_t i = 0; i < payload_size; i++)
+      expanded_bitvec.push_back (bitvec[i % bitvec.size()]);
+    bitvec = expanded_bitvec;
+  }
   printf ("message: %s\n", bit_vec_to_str (bitvec).c_str());
   std::vector<int> hbits = bits_add_hash (bitvec);
   printf ("hashed:  %s (validates=%d)\n", bit_vec_to_str (hbits).c_str(), bits_validate_hash (hbits) == bitvec);
@@ -245,10 +233,10 @@ convert_image (const String &input, const String &output, const String &bits)
   if (out &&
       out->open (output, out_spec) &&
       out->copy_image (inp.get()) &&
-      out->close ())
+      out->close())
     ; // success
   else
     die (1, "%s: failed to save image `%s`: %s", argv0, output.c_str(), strerror (errno));
 
-  inp->close ();
+  inp->close();
 }
