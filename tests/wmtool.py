@@ -136,6 +136,37 @@ def attack_aspect (img, amin, amax):
   return cv2.resize (img, (width, height))
 
 epilog += """
+* aspect-crop:<W>:<H>
+
+  change aspect ratio to random ratio between <W>:<H> and <H>:<W> by cropping
+"""
+def attack_aspect_crop (img, ratio_w, ratio_h):
+  width = img.shape[1]
+  height = img.shape[0]
+  img_ratio = width / height
+
+  # using random.uniform (ratio_w/ratio_h, ratio_h/ratio_w) directly has a bias
+  # towards ratios > 1 (as these are more likely)
+  # using log-ratio-random doesn't have a bias
+  log_ratio = random.uniform (np.log (ratio_w/ratio_h), np.log (ratio_h/ratio_w))
+  target_ratio = np.exp (log_ratio)
+
+  if img_ratio > target_ratio:
+    # too wide -> crop width
+    new_width = round (height * target_ratio)
+    new_height = height
+  else:
+    # too high -> crop height
+    new_width = width
+    new_height = round (width / target_ratio)
+  x1 = (width - new_width) // 2
+  x2 = x1 + new_width
+  y1 = (height - new_height) // 2
+  y2 = y1 + new_height
+  print_attack ("ATTACK aspect-crop %dx%d to %dx%d %.3f" % (width, height, new_width, new_height, target_ratio))
+  return img[y1:y2,x1:x2]
+
+epilog += """
 * aspect-resize:<width>:<height>
 
   change aspect ratio of the image, avoiding extreme aspect ratio changes
@@ -258,6 +289,8 @@ if (args.attack):
       face = attack_aspect (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "aspect-resize" and len (aargs) == 3:
       face = attack_aspect_resize (face, int (aargs[1]), int (aargs[2]))
+    elif aargs[0] == "aspect-crop" and len (aargs) == 3:
+      face = attack_aspect_crop (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "none" and len (aargs) == 1:
       pass
     else:
