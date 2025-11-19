@@ -45,7 +45,7 @@ def cli_parser():
     parser.add_argument ('--strength', type = float, default = 2, help = "Strength for embedded watermark")
     parser.add_argument ('-P', dest = 'plots', type = str, help = "Configure plots with colon separated keywords, 'most' or 'all'")
     parser.add_argument ('--key', type = str, help = "Load watermarking key from file")
-    parser.add_argument ('--test-key', type = str, help = "Watermarking key")
+    parser.add_argument ('--test-key', type = str, help = "Specify test key (for debugging only, insecure)")
 
   # COMMANDS
   p.add_argument ('-V', '--version', action = 'version', version = 'ImageWMark %s' % __version__)
