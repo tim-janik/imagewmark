@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 static void     image_info (const String &input);
-static void     convert_image (const String &input, const String &output, const String &bits);
 
 const char *argv0 = nullptr;
 
@@ -179,63 +178,4 @@ image_info (const String &input)
   std::vector<int> pbits = bits_validate_hash (bitvec);
   if (pbits.size())
     printf ("message: %s\n", bit_vec_to_str (pbits).c_str());
-}
-
-static void
-convert_image (const String &input, const String &output, const String &bits)
-{
-  Image img;
-  using namespace OIIO;
-  auto inp = ImageInput::open (input);
-  if (!inp)
-    die (1, "%s: failed to load image `%s`: %s", argv0, input.c_str(), strerror (errno));
-  const ImageSpec &spec = inp->spec();
-  img.width = spec.width;
-  img.height = spec.height;
-  img.channels = spec.nchannels;
-  img.pixels.resize (img.width * img.height * img.channels);
-  inp->read_image (inp->current_subimage(), inp->current_miplevel(), 0, -1, TypeDesc::UINT8, &img.pixels[0]);
-  img.comment = spec.get_string_attribute ("ImageDescription", ""); // JPEG, TIFF
-  if (img.comment.empty())
-    img.comment = spec.get_string_attribute ("Comment", ""); // PNG
-
-  printf ("%s:\n", input.c_str());
-  printf ("size: %dx%d\n", img.width, img.height);
-  printf ("oldcomm: %s\n", img.comment.c_str());
-
-  const size_t payload_size = 128;
-  std::vector<int> bitvec = bit_str_to_vec (bits);
-  if (bitvec.empty())
-    die (5, "failed to parse bits: %s", bits.c_str());
-  if (bitvec.size() < payload_size) {
-    std::vector<int> expanded_bitvec;
-    for (size_t i = 0; i < payload_size; i++)
-      expanded_bitvec.push_back (bitvec[i % bitvec.size()]);
-    bitvec = expanded_bitvec;
-  }
-  printf ("message: %s\n", bit_vec_to_str (bitvec).c_str());
-  std::vector<int> hbits = bits_add_hash (bitvec);
-  printf ("hashed:  %s (validates=%d)\n", bit_vec_to_str (hbits).c_str(), bits_validate_hash (hbits) == bitvec);
-
-  Random crng (0, Random::Stream::img_comment);
-  for (size_t i = 0; i < hbits.size(); i++)
-    hbits[i] ^= crng() & 1;
-  const String cmessage = bit_vec_to_str (hbits);
-  printf ("shuffle: %s\n", cmessage.c_str());
-
-  ImageSpec out_spec = inp->spec();
-  if (string_endswith (string_tolower (output), ".png"))
-    out_spec.attribute ("Comment", cmessage.c_str());
-  else
-    out_spec.attribute ("ImageDescription", cmessage.c_str());
-  std::unique_ptr<ImageOutput> out = ImageOutput::create (output);
-  if (out &&
-      out->open (output, out_spec) &&
-      out->copy_image (inp.get()) &&
-      out->close())
-    ; // success
-  else
-    die (1, "%s: failed to save image `%s`: %s", argv0, output.c_str(), strerror (errno));
-
-  inp->close();
 }
