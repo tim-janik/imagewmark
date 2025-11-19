@@ -13,14 +13,14 @@ usage (int code)
 {
   printf ("Usage: %s [options] <command> <args...>\n", argv0);
   printf ("Options:\n");
-  printf ("  --key <file>          load watermarking key from file\n");
-  printf ("  --test-key <int>      specify test key directly\n");
+  printf ("  --key <file>          Load watermarking key from file\n");
+  printf ("  --test-key <hex>      Specify test key (for debugging only, insecure)\n");
   printf ("Commands:\n");
-  printf ("  GET <inputimage>      extract watermarks from image\n");
+  printf ("  GET <inputimage>      Extract watermarks from image\n");
   printf ("  ADD <inimage> <outimage> <wmark>\n");
-  printf ("                        add watermark to image\n");
-  printf ("  GEN-KEY <keyfile>     generate 128-bit watermarking key\n");
-  printf ("  RAND                  internal key based PRNG\n");
+  printf ("                        Add watermark to image\n");
+  printf ("  GEN-KEY <keyfile>     Generate 128-bit watermarking key\n");
+  printf ("  RAND                  Internal key based PRNG\n");
   exit (code);
 }
 
@@ -61,9 +61,11 @@ main (int argc, const char *argv[])
     {
       if (getarg ("--key", s, argv, i))
         Random::load_global_key (s);
-      else if (getarg ("--test-key", s, argv, i))
+      else if (getarg ("--test-key", s, argv, i)) {
+        while (s.size() < 32)
+          s = "0" + s; // expand to 128bit
         Random::set_global_test_key (s);
-      else
+      } else
         args.push_back (argv[i]);
     }
   // handle commands
