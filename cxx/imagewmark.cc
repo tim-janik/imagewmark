@@ -73,6 +73,9 @@ main (int argc, char *argv[])
     while (s.size() < 32)
       s = "0" + s; // expand to 128bit
     Random::set_global_test_key (s);
+  } else {
+    static constexpr const char *DEFAULT_KEY = "62da62d568144f7c93ac01f1cf529781";
+    Random::set_global_test_key (DEFAULT_KEY);
   }
 
   // --- Handle Commands ---
