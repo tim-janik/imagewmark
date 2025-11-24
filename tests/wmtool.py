@@ -68,6 +68,29 @@ def attack_scaleto (img, pixels):
   return cv2.resize (img, (width, height))
 
 epilog += """
+* range-scaleto:<threshold>:<min_pixels>:<max_pixels>
+
+  if the smaller image dimension is greater or equal than <threshold> pixels
+    rescale image so that the smaller dimension has a random size
+    between <min_pixels> and <max_pixels>
+"""
+
+def attack_range_scaleto (img, threshold, min_pixels, max_pixels):
+  min_width_height = min (img.shape[0], img.shape[1])
+  if min_width_height >= threshold:
+    pixels = random.randint (min_pixels, max_pixels)
+    print_attack ("ATTACK range-scaleto %d to %d" % (min_width_height, pixels))
+
+    img_scale = pixels / min_width_height
+    width = round (img.shape[1] * img_scale)
+    height = round (img.shape[0] * img_scale)
+
+    return cv2.resize (img, (width, height))
+  else:
+    print_attack ("ATTACK range-scaleto %d below threshold %d" % (min_width_height, threshold))
+    return img
+
+epilog += """
 * crop:<cmin>:<cmax>
 
   crop image preserving a randomized percentage of pixels between <cmin> and <cmax>
@@ -281,6 +304,8 @@ if (args.attack):
       face = attack_scale (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "scaleto" and len (aargs) == 2:
       face = attack_scaleto (face, int (aargs[1]))
+    elif aargs[0] == "range-scaleto" and len (aargs) == 4:
+      face = attack_range_scaleto (face, int (aargs[1]), int (aargs[2]), int (aargs[3]))
     elif aargs[0] == "crop" and len (aargs) == 3:
       face = attack_crop (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "rotate" and len (aargs) == 3:
