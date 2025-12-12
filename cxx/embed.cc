@@ -373,10 +373,9 @@ command_add (const AddOptions &opt)
   // Use dynamic_zoom from config (allow override with --dynamic-zoom)
   if (ZOOM <= 0) {
     const double dynamic_zoom = opt.dynamic_zoom > 0 ? opt.dynamic_zoom : Config::dynamic_zoom;
-    ZOOM = std::min (host.cols, host.rows) / Lwsmall / dynamic_zoom;
+    ZOOM = std::min (host.cols, host.rows) / double (Lwsmall) / dynamic_zoom;
     ZOOM = std::max (Config::minimum_zoom, ZOOM);
   }
-  // TODO: fix ZOOM to match Python exactly
 
   // Determine watermark tiles to cover the image
   int hreps = host.cols / Lwsmall / ZOOM + 2;
