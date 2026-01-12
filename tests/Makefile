@@ -12,6 +12,7 @@ ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
 __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
 SRCDIR			?= $(dir $(MAKEFILE))/..
+IMAGEWMARK		?= $(SRCDIR)/imagewmark
 WATERMARK		?= fedcba98765432100123456789abcdef
 SEED			?= 0
 ATTACKS			?= $(DEFAULT_ATTACKS)
@@ -63,7 +64,7 @@ WMARKED_IMAGES := $(INPUTS:inputs/%=wmarked/%)
 wmarked/%: inputs/%
 	$(QECHO) ADD $@
 	$Q mkdir -p $(dir $@)
-	$Q $(SRCDIR)/imagewmark add $(__TESTKEY) $< $@.png $(WATERMARK)
+	$Q $(IMAGEWMARK) add $(__TESTKEY) $< $@.png $(WATERMARK)
 	$Q mv $@.png $@
 .NOTINTERMEDIATE: $(WMARKED_IMAGES)
 
@@ -125,10 +126,10 @@ EXTRACT_FILES := $(ATTACK_IMAGES:attack/%=extract/%.json)
 extract/%.json: attack/%
 	$(QECHO) GET $@
 	$Q mkdir -p $(dir $@)
-	$Q $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) --cornersync $(CORNERSYNC_MODE) $< --json > $@.tmp
+	$Q $(IMAGEWMARK) get $(__TESTKEY) --expect $(WATERMARK) --cornersync $(CORNERSYNC_MODE) $< --json > $@.tmp
 	$Q $(WITHOUT_ORIGINAL) || grep -qw "$(WATERMARK)" $@.tmp || { \
 	  echo '  ALIGNED  ' $@ \
-	&& $(SRCDIR)/imagewmark get $(__TESTKEY) --expect $(WATERMARK) $< --json \
+	&& $(IMAGEWMARK) get $(__TESTKEY) --expect $(WATERMARK) $< --json \
 				--original inputs/$(notdir $(<:%.json=%))	 > $@.tmp ; }
 	$Q mv $@.tmp $@
 .NOTINTERMEDIATE: $(EXTRACT_FILES)
