@@ -13,7 +13,7 @@ RESULT_REPORTS	:=
 __TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
 SRCDIR			?= $(dir $(MAKEFILE))/..
 WATERMARK		?= fedcba98765432100123456789abcdef
-MAINSEED		?= ddc1af1c64eedbd262dc8830d15b202a85185a47ddbdcd04e38f7743952c1253
+SEED			?= 0
 ATTACKS			?= $(DEFAULT_ATTACKS)
 WITHOUT_ORIGINAL	?= false
 CORNERSYNC_MODE		?= auto
@@ -30,7 +30,7 @@ help:
 	@echo 'Invocation:'
 	@echo '  make V=1		- Enable verbose output from MAKE and subcommands'
 	@echo '  make IMAGEDIR=..	- Specifc directory with images for testing'
-	@echo '  make MAINSEED=<string>	- Alter main seed for randomized tests'
+	@echo '  make SEED=<integer>	- Alter seed for randomized tests'
 
 # == check-nproc ==
 check-nproc:
@@ -106,7 +106,7 @@ define ATTACK_RULE
 $(1:%=attack/%)/%: wmarked/%
 	$$(QECHO) $1 $$@
 	$Q mkdir -p $$(dir $$@)
-	$Q SEED=`$(SRCDIR)/tests/wmtool.py --hash '$(MAINSEED):$$@'` && $$(call $(1), $$$$SEED)
+	$Q $$(call $(1), $$(SEED))
 ATTACK_IMAGES += $$(WMARKED_IMAGES:wmarked/%=$(1:%=attack/%)/%)
 endef
 $(foreach A, $(ATTACKS), $(eval $(call ATTACK_RULE, $(A))))
@@ -165,7 +165,7 @@ all: $(RESULT_REPORTS)
 	$(QGEN)
 	$Q echo "IMAGEDIR:        " $(IMAGEDIR)
 	$Q echo "WMARKED_IMAGES:  " $(words $(WMARKED_IMAGES))
-	$Q echo "MAINSEED:        " $(MAINSEED)
+	$Q echo "SEED:            " $(SEED)
 	$Q echo "ATTACK_IMAGES:   " $(words $(ATTACK_IMAGES))
 	$Q echo "EXTRACT_FILES:   " $(words $(EXTRACT_FILES))
 	$Q echo "MATCHING:        " $$(xargs -aEXTRACT_FILES.lst grep -w "$(WATERMARK)" | wc -l)
