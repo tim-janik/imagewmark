@@ -149,6 +149,7 @@ def main():
   eprint ("adding Makefile:", outmk)
   with open (inmk, 'r+', encoding='utf-8') as src, open (outmk, 'w', encoding='utf-8') as dst:
     content = src.read()
+    content = re.sub (r'^SEED\s*\?=.*', f'SEED := {args.seed}', content, 0, re.M)
     content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
     content = re.sub (r'^WITHOUT_ORIGINAL\s*\?=.*', f'WITHOUT_ORIGINAL := {str (args.without_original).lower()}', content, 0, re.M)
     content = re.sub (r'^CORNERSYNC_MODE\s*\?=.*', f'CORNERSYNC_MODE := {str (args.cornersync).lower()}', content, 0, re.M)
