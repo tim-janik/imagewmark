@@ -149,7 +149,7 @@ report.md: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
 	$Q $(SRCDIR)/tests/report.py $(WATERMARK) >$@.tmp
 	$Q mv $@.tmp $@
-RESULT_REPORTS += report.html report.pdf
+RESULT_REPORTS += report.md report.html report.pdf
 flat.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
 	$Q $(SRCDIR)/tests/report.py --flat $(WATERMARK) >> $@.tmp
