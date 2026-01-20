@@ -68,6 +68,29 @@ def attack_scaleto (img, pixels):
   return cv2.resize (img, (width, height))
 
 epilog += """
+* range-scaleto:<threshold>:<min_pixels>:<max_pixels>
+
+  if the smaller image dimension is greater or equal than <threshold> pixels
+    rescale image so that the smaller dimension has a random size
+    between <min_pixels> and <max_pixels>
+"""
+
+def attack_range_scaleto (img, threshold, min_pixels, max_pixels):
+  min_width_height = min (img.shape[0], img.shape[1])
+  if min_width_height >= threshold:
+    pixels = random.randint (min_pixels, max_pixels)
+    print_attack ("ATTACK range-scaleto %d to %d" % (min_width_height, pixels))
+
+    img_scale = pixels / min_width_height
+    width = round (img.shape[1] * img_scale)
+    height = round (img.shape[0] * img_scale)
+
+    return cv2.resize (img, (width, height))
+  else:
+    print_attack ("ATTACK range-scaleto %d below threshold %d" % (min_width_height, threshold))
+    return img
+
+epilog += """
 * crop:<cmin>:<cmax>
 
   crop image preserving a randomized percentage of pixels between <cmin> and <cmax>
@@ -134,6 +157,37 @@ def attack_aspect (img, amin, amax):
     height = round (height * 100 / aspect)
 
   return cv2.resize (img, (width, height))
+
+epilog += """
+* aspect-crop:<W>:<H>
+
+  change aspect ratio to random ratio between <W>:<H> and <H>:<W> by cropping
+"""
+def attack_aspect_crop (img, ratio_w, ratio_h):
+  width = img.shape[1]
+  height = img.shape[0]
+  img_ratio = width / height
+
+  # using random.uniform (ratio_w/ratio_h, ratio_h/ratio_w) directly has a bias
+  # towards ratios > 1 (as these are more likely)
+  # using log-ratio-random doesn't have a bias
+  log_ratio = random.uniform (np.log (ratio_w/ratio_h), np.log (ratio_h/ratio_w))
+  target_ratio = np.exp (log_ratio)
+
+  if img_ratio > target_ratio:
+    # too wide -> crop width
+    new_width = round (height * target_ratio)
+    new_height = height
+  else:
+    # too high -> crop height
+    new_width = width
+    new_height = round (width / target_ratio)
+  x1 = (width - new_width) // 2
+  x2 = x1 + new_width
+  y1 = (height - new_height) // 2
+  y2 = y1 + new_height
+  print_attack ("ATTACK aspect-crop %dx%d to %dx%d %.3f" % (width, height, new_width, new_height, target_ratio))
+  return img[y1:y2,x1:x2]
 
 epilog += """
 * aspect-resize:<width>:<height>
@@ -250,6 +304,8 @@ if (args.attack):
       face = attack_scale (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "scaleto" and len (aargs) == 2:
       face = attack_scaleto (face, int (aargs[1]))
+    elif aargs[0] == "range-scaleto" and len (aargs) == 4:
+      face = attack_range_scaleto (face, int (aargs[1]), int (aargs[2]), int (aargs[3]))
     elif aargs[0] == "crop" and len (aargs) == 3:
       face = attack_crop (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "rotate" and len (aargs) == 3:
@@ -258,6 +314,8 @@ if (args.attack):
       face = attack_aspect (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "aspect-resize" and len (aargs) == 3:
       face = attack_aspect_resize (face, int (aargs[1]), int (aargs[2]))
+    elif aargs[0] == "aspect-crop" and len (aargs) == 3:
+      face = attack_aspect_crop (face, int (aargs[1]), int (aargs[2]))
     elif aargs[0] == "none" and len (aargs) == 1:
       pass
     else:
