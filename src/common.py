@@ -110,6 +110,17 @@ def normalize (src, base = 0.0, full = 1.0, dtype = float):
     img *= full / img.max()
   return img
 
+# Scale image with a factor:
+#   - the highest positive peak in normalized image is 1.0
+#   - the sign of the input values is preserved
+def peak_normalize (src, dtype = float):
+  img = np.array (src, dtype = dtype)
+  img_max_peak = img.max()
+  if img_max_peak > 0:
+    return img / img_max_peak
+  else:
+    return img
+
 # zoom via OpenCV2
 # - this is a lot faster than scipy.ndimage.zoom
 # - interpolation is different than scipy.ndimage.zoom, but INTER_CUBIC works for our purpose
