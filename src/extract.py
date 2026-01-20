@@ -97,7 +97,7 @@ def rescale_peaks (S2j, W_est, args):
   dprint ("O_denom:", O_denom.shape, O_denom.min(), '...', O_denom.max())
   S2j_uni = S2j / O_denom     # uniform upsampled s
   dprint ("S2j_uni:", S2j_uni.shape, S2j_uni.min(), '...', S2j_uni.max())
-  S2_uni = common.normalize (S2j_uni, dtype = np.float32)
+  S2_uni = common.peak_normalize (S2j_uni, dtype = np.float32)
   del S2j_uni
   dprint ("S2_uni:", S2_uni.shape, S2_uni.min(), '...', S2_uni.max())
   if 'peaks' in args.dump:
@@ -756,10 +756,6 @@ def auto_convolution_sync (W_est, args, window, face_J, J_Wvar):
   cpusecs = common.cpusecs_start()
   # ACNF of W^ (W_est)
   S2j = auto_convolution (W_est.astype (np.float32))
-  # TODO: np.abs discards the sign of the auto convolution - we may want to
-  # preserve it (also in the steps after computing the symmetry matrix)
-  # this change needs testing
-  S2j = np.abs (S2j)
   dprint ("S2j:", S2j.shape, S2j.min(), '...', S2j.max())
   if config.will_plot ('ACNF'):
     show (J=face_J, J_Wvar=J_Wvar, S2j=S2j, S2jζ=maxi (S2j))
