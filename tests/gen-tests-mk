@@ -128,7 +128,7 @@ def main():
   parser.add_argument ("--seed", type = int, default = 0, help = "Seed for random number generators")
   parser.add_argument ("--without-original", action = "store_true", help = "Disable use of original image for detection.")
   parser.add_argument ("--cornersync", choices = ['on', 'off', 'auto'], default = 'auto', help = "Set cornersync aided detection mode (on|off|auto).")
-  parser.add_argument ("--attacks", type = str, default = 'all', help = "Comma-separated list of attacks to run.")
+  parser.add_argument ("--attacks", type = str, default = 'default', help = "Comma-separated list of attacks to run or one of: all, extended, default")
   args = parser.parse_args()
   eprint (f"SEED: {args.seed}")
   random.seed (args.seed)
@@ -153,8 +153,12 @@ def main():
     content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
     content = re.sub (r'^WITHOUT_ORIGINAL\s*\?=.*', f'WITHOUT_ORIGINAL := {str (args.without_original).lower()}', content, 0, re.M)
     content = re.sub (r'^CORNERSYNC_MODE\s*\?=.*', f'CORNERSYNC_MODE := {str (args.cornersync).lower()}', content, 0, re.M)
-    if args.attacks and 'all' != args.attacks:
-      content = re.sub (r'^(ATTACKS\s*\?=.*)', f'# \\1\nATTACKS ?= { " ".join (args.attacks.split (",")) }', content, 0, re.M)
+    if args.attacks == 'all' or args.attacks == 'extended':
+      content = re.sub (r'^ATTACKS\s*\?=.*', 'ATTACKS = $(DEFAULT_ATTACKS) $(EXTENDED_ATTACKS)', content, 0, re.M)
+    elif args.attacks == 'default':
+      content = re.sub (r'^ATTACKS\s*\?=.*', 'ATTACKS = $(DEFAULT_ATTACKS)', content, 0, re.M)
+    else:
+      content = re.sub (r'^ATTACKS\s*\?=.*', f'ATTACKS = { " ".join (args.attacks.split (",")) }', content, 0, re.M)
     dst.write (content)
 
   # crawl imagedir for files with an image extension
