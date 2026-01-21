@@ -10,10 +10,9 @@ EXPECTED_WM = None
 ATTACKS = None
 FLAT = None
 def parse_args():
-  global EXPECTED_WM, ATTACKS, FLAT
-  assert not EXPECTED_WM and not ATTACKS
   # Parse args
   FLAT = False
+  EXPECTED_WM = None
   i = 1
   while i < len (sys.argv):
     if sys.argv[i] == "--flat" or sys.argv[i] == "--flat2":
@@ -25,7 +24,7 @@ def parse_args():
   if not EXPECTED_WM:
     print ("usage: report.py [--flat] <payload>", file = sys.stderr)
     sys.exit (1)
-  ATTACKS = sorted (list_subdirs ('attack/'))
+  return EXPECTED_WM, FLAT
 
 
 def eprint (*args, **kwargs):
@@ -46,36 +45,49 @@ def list_subdirs (rootdir):
 
 # Categorize JSON file into matching, matching-with-alignment, failed
 def categorize_detections (jsonfiles):
-  matching, aligned, failed = [], [], []
+  cs_matching, acnf_matching, aligned, failed = [], [], [], []
   for jf in jsonfiles:
     jo = json.loads (open (jf, 'r').read())
     is_valid = False
     is_aligned = jo.get ('aligned', False)
+    is_cornersync = -1
+    window = 0
     for m in jo['matches']:
-      if (m['bits'] == EXPECTED_WM):
+      if m['bits'] == EXPECTED_WM:
         is_valid = True
+        window = m['window']
+        if m.get ('sync') == 'acnf':
+          is_cornersync = False
+        elif m.get ('sync') == 'cornersync':
+          is_cornersync = True
+    if is_valid and is_cornersync == -1:
+      # imagewmark 0.5 has no  matches[].sync field
+      is_cornersync = window == 9 and jo.get ('cornersync_detect_cpu', 0) > 0.0
     if is_valid and is_aligned:
       aligned.append (jo)
+    elif is_valid and is_cornersync:
+      cs_matching.append (jo)
     elif is_valid:
-      matching.append (jo)
+      acnf_matching.append (jo)
     else:
       failed.append (jo)
-  n_results = len (matching) + len (aligned) + len (failed)
+  n_results = len (cs_matching) + len (acnf_matching) + len (aligned) + len (failed)
   assert len (jsonfiles) == n_results
-  return matching, aligned, failed
+  return acnf_matching, cs_matching, aligned, failed
 
 # List OK/FAIL with JSD, suitable as input for diff and awk
-def generate_flat_report (n_input_files, matching, aligned, failed):
+def generate_flat_report (n_input_files, acnf_matching, cs_matching, aligned, failed):
   for attackdir in ATTACKS:
-    assert n_input_files == len (matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir])
+    assert n_input_files == len (acnf_matching[attackdir]) + len (cs_matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir])
     for jo in failed[attackdir]:
       print (jo['filename'])
   return
 
 # Attack Statistics
-def generate_attack_statistics (n_input_files, matching, aligned, failed):
+def generate_attack_statistics (n_input_files, acnf_matching, cs_matching, aligned, failed):
   n_input = {}
-  n_valid = {}
+  n_cs_valid = {}
+  n_acnf_valid = {}
   n_aligned = {}
   # strip ATTACKNAMEseed123 to just ATTACKNAME
   strip_seed = lambda attack: re.sub(r'seed[0-9]+$', '', attack)
@@ -83,44 +95,47 @@ def generate_attack_statistics (n_input_files, matching, aligned, failed):
   for attackdir in ATTACKS:
     attack = strip_seed (attackdir)
     n_input[attack] = 0
-    n_valid[attack] = 0
+    n_acnf_valid[attack] = 0
+    n_cs_valid[attack] = 0
     n_aligned[attack] = 0
   # merge counts from different seeds of the same attack
   for attackdir in ATTACKS:
     attack = strip_seed (attackdir)
     n_input[attack] += n_input_files
-    n_valid[attack] += len (matching[attackdir])
+    n_cs_valid[attack] += len (cs_matching[attackdir])
+    n_acnf_valid[attack] += len (acnf_matching[attackdir])
     n_aligned[attack] += len (aligned[attackdir])
-    assert n_input_files == len (matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir])
+    assert n_input_files == len (acnf_matching[attackdir]) + len (cs_matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir])
   # generate output table
   s = ''
   s += '## Attack Statistics\n\n'
   s += 'Results for correct watermark detection (blind, "Match"), plus fallback detection via original image (non-blind, "Total").\n'
   s += 'Some attacks are re-run with different random seeds, which multiplies the number of inputs.\n\n'
   s += 'Total input files: %d\n\n' % n_input_files
-  s += '| **Attack** | **Found** | **Fail** | **Match** | **Orig** | **Total** |\n'
-  s += '|----------------------------|:-----:|-----:|-----:|:----:|-----:|\n'
+  s += '| **Attack** | **ACNF** | **CS** | **AO** | **Fail** | **Match** |\n'
+  s += '|----------------------------|-----:|:----:|:----:|-----:|----:|\n'
   for attack in sorted (n_input.keys()):
-    mismatch_perc = (n_input[attack] - n_valid[attack]) * 100.0 / n_input[attack]
-    aligned_perc = mismatch_perc
-    if (n_input[attack] - n_valid[attack]):
-      aligned_perc = (n_input[attack] - n_valid[attack] - n_aligned[attack]) * 100.0 / n_input[attack]
-    R = '**' if aligned_perc < 1e-9 else ''
+    is_geometric_attack = bool (re.search (r'(?<![A-Za-z])g$', attack))
+    cs_weight = 1 if is_geometric_attack else 0.5       # assume CS only catches 50% of leaks
+    valid_count = n_acnf_valid[attack] + n_cs_valid[attack] * cs_weight
+    mismatch_perc = (n_input[attack] - valid_count) * 100.0 / n_input[attack]
     H,E = ('**','') if mismatch_perc < 1e-9 else ('','**')      # highlight matches <= 90%
-    s += '| %s | %d/%d | %s%.1f%%%s | %s%.1f%%%s | %s | %s%.1f%%%s\n' % \
-      (attack, n_valid[attack], n_input[attack],
+    s += '| %s | %d/%d | %d | %d | %s%.1f%%%s | %s%.1f%%%s\n' % \
+      (attack,
+       n_acnf_valid[attack], n_input[attack],
+       n_cs_valid[attack],
+       n_aligned[attack],
        E, mismatch_perc, E,
-       H, 100 - mismatch_perc, H,
-       n_aligned[attack] or '', R, 100 - aligned_perc, R)
+       H, 100 - mismatch_perc, H)
   print (s)
 
 # Timings
-def generate_timings (matching, aligned, failed):
+def generate_timings (acnf_matching, cs_matching, aligned, failed):
   import numpy as np
   import matplotlib.pyplot as plt
   svt = {} # size vs time
   for attackdir in ATTACKS:
-    for jo in matching[attackdir] + aligned[attackdir] + failed[attackdir]:
+    for jo in acnf_matching[attackdir] + cs_matching[attackdir] + aligned[attackdir] + failed[attackdir]:
       size = jo['width'] * jo['height']
       svt[size] = svt.get (size, []) + [ jo['time'] ]
   for k in svt:
@@ -141,30 +156,34 @@ def generate_timings (matching, aligned, failed):
   print (s)
 
 def main():
+  # Parse args and attack types
+  global EXPECTED_WM, ATTACKS, FLAT
+  EXPECTED_WM, FLAT = parse_args()
+  ATTACKS = sorted (list_subdirs ('attack/'))
   assert EXPECTED_WM and ATTACKS
   # Read inputs and attacks
   input_files = files_recursively ('inputs/')
   n_input_files = len (input_files)
-  extracted = {}
-  aligned = {}
-  matching = {}   # WM found
-  aligned = {}    # WM found via aligned original
-  failed = {}     # WM detection failed
+  extracted = {}        # JSON files from 'get'
+  aligned = {}          # JSON aligned==true
+  acnf_matching = {}    # WM found
+  cs_matching = {}      # WM found
+  failed = {}           # WM detection failed
 
   # Categorize WM detection results per attack
   for attackdir in ATTACKS:
     # attack_files = files_recursively ('attack/' + attackdir)
     extracted[attackdir] = files_recursively ('extract/' + attackdir, extension = '.json')
     assert n_input_files == len (extracted[attackdir])
-    matching[attackdir], aligned[attackdir], failed[attackdir] = categorize_detections (extracted[attackdir])
-    assert len (matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir]) == n_input_files
+    acnf_matching[attackdir], cs_matching[attackdir], aligned[attackdir], failed[attackdir] = categorize_detections (extracted[attackdir])
+    assert len (acnf_matching[attackdir]) + len (cs_matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir]) == n_input_files
 
   # Report generation
   if FLAT:
-    generate_flat_report (n_input_files, matching, aligned, failed)
+    generate_flat_report (n_input_files, acnf_matching, cs_matching, aligned, failed)
   else:
-    generate_attack_statistics (n_input_files, matching, aligned, failed)
-    generate_timings (matching, aligned, failed)
+    generate_attack_statistics (n_input_files, acnf_matching, cs_matching, aligned, failed)
+    print ("\n---\n")
+    generate_timings (acnf_matching, cs_matching, aligned, failed)
 
-parse_args()
 main()
