@@ -15,7 +15,6 @@ SRCDIR			?= $(dir $(MAKEFILE))/..
 IMAGEWMARK		?= $(SRCDIR)/imagewmark
 WATERMARK		?= fedcba98765432100123456789abcdef
 SEED			?= 0
-ATTACKS			?= $(DEFAULT_ATTACKS)
 WITHOUT_ORIGINAL	?= false
 CORNERSYNC_MODE		?= auto
 
@@ -73,36 +72,66 @@ wmarked/%: inputs/%
 # rotation		echo "rotate:5:15|jpeg:90 rotate:0:180|jpeg:90"
 # cropping		echo "crop:25:25|jpeg:90 crop:50:50|jpeg:90 crop:75:75|jpeg:90 crop:90:90|jpeg:90"
 # upscaling + jpeg	echo "crop:75:95|scale:100:200|jpeg:90"
-DEFAULT_ATTACKS := $(strip	\
-	jpg30 jpg50 jpg70 jpg90 noise noisej90 j90scaleto512j90 j90scaleto512j70	\
-	j90scaleto768j90 j90scaleto768j70 j90scaleto768j50 j90randomsizej80		\
-	crop75j90 crop50scale200j90 noisecrop50scale200j90 noise2crop50scale200j90	\
-)
-ifneq ($(CORNERSYNC_MODE),on)
-DEFAULT_ATTACKS += rot5to15j90 rot0to180j90 j90crop50scaleto512j90 j90crop60scaleto512j70
+DEFAULT_ATTACKS  :=
+EXTENDED_ATTACKS :=
+
+# DEFAULT
+jpg70                  = convert $<			-quality 70		-strip $@.jpg && mv $@.jpg $@
+DEFAULT_ATTACKS       += jpg70
+jpg90                  = convert $<			-quality 90		-strip $@.jpg && mv $@.jpg $@
+DEFAULT_ATTACKS       += jpg90
+noisej90               = convert $<	-seed $1 +noise Gaussian -quality 90	-strip $@.jpg && mv $@.jpg $@
+DEFAULT_ATTACKS       += noisej90
+j90scaleto512j80       = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:80" $< $@.png && mv $@.png $@
+DEFAULT_ATTACKS       += j90scaleto512j80
+j90randomsizej80g = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|aspect-resize:$(RANDOMSIZE)|jpeg:80" $< $@.png && mv $@.png $@
+DEFAULT_ATTACKS       += j90randomsizej80g
+# geometrical attacks
+rot0to180j90g		= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:0:180|jpeg:90" $< $@.png && mv $@.png $@
+DEFAULT_ATTACKS        += rot0to180j90g
+j90crop50scaleto512j80g = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:50:50|scaleto:512|jpeg:80" $< $@.png && mv $@.png $@
+DEFAULT_ATTACKS        += j90crop50scaleto512j80g
+
+# EXTENDED
+jpg30                  = convert $<			-quality 30		-strip $@.jpg && mv $@.jpg $@
+EXTENDED_ATTACKS      += jpg30
+jpg50                  = convert $<			-quality 50		-strip $@.jpg && mv $@.jpg $@
+EXTENDED_ATTACKS      += jpg50
+noise                  = convert $<	-seed $1 +noise Gaussian		-strip $@.png && mv $@.png $@
+EXTENDED_ATTACKS      += noise
+j90scaleto512j90       = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:90" $< $@.png && mv $@.png $@
+EXTENDED_ATTACKS      += j90scaleto512j90
+j90scaleto768j90       = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:90" $< $@.png && mv $@.png $@
+EXTENDED_ATTACKS      += j90scaleto768j90
+j90scaleto768j70       = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:70" $< $@.png && mv $@.png $@
+EXTENDED_ATTACKS      += j90scaleto768j70
+j90scaleto768j50       = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:50" $< $@.png && mv $@.png $@
+EXTENDED_ATTACKS      += j90scaleto768j50
+# centered cropping (well detected by corner sync)
+centered75j90          = convert $< -gravity Center -crop 75x75%+0+0 -quality 90	-strip $@.jpg && mv $@.jpg $@
+EXTENDED_ATTACKS      += centered75j90
+centered50scale200j90  = convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	-strip $@.jpg && mv $@.jpg $@
+EXTENDED_ATTACKS      += centered50scale200j90
+noisecentered50scale200j90   = convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	-strip $@.jpg && mv $@.jpg $@
+EXTENDED_ATTACKS      += noisecentered50scale200j90
+noise2centered50scale200j90  = convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% +noise Gaussian -quality 90	-strip $@.jpg && mv $@.jpg $@
+EXTENDED_ATTACKS      += noise2centered50scale200j90
+# geometrical attacks
+rot5to15j90g            = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:5:15|jpeg:90" $< $@.png && mv $@.png $@
+EXTENDED_ATTACKS       += rot5to15j90g
+j90crop60scaleto512j70g = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:60:60|scaleto:512|jpeg:70" $< $@.png && mv $@.png $@
+EXTENDED_ATTACKS       += j90crop60scaleto512j70g
+
+ATTACKS			?= $(DEFAULT_ATTACKS)
+
+ifeq ($(CORNERSYNC_MODE),on)
+EXTENDED_ATTACKS := $(filter-out %g, $(EXTENDED_ATTACKS))
+DEFAULT_ATTACKS := $(filter-out %g, $(DEFAULT_ATTACKS))
 endif
-#jpg30			= convert $<			-quality 30		-strip $@.jpg && mv $@.jpg $@
-#jpg50			= convert $<			-quality 50		-strip $@.jpg && mv $@.jpg $@
-jpg70			= convert $<			-quality 70		-strip $@.jpg && mv $@.jpg $@
-jpg90			= convert $<			-quality 90		-strip $@.jpg && mv $@.jpg $@
-#noise			= convert $<	-seed $1 +noise Gaussian		-strip $@.png && mv $@.png $@
-noisej90		= convert $<	-seed $1 +noise Gaussian -quality 90	-strip $@.jpg && mv $@.jpg $@
-#j90scaleto512j90	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:90" $< $@.png && mv $@.png $@
-j90scaleto512j80	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:512|jpeg:80" $< $@.png && mv $@.png $@
-#j90scaleto768j90	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:90" $< $@.png && mv $@.png $@
-#j90scaleto768j70	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:70" $< $@.png && mv $@.png $@
-#j90scaleto768j50	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|scaleto:768|jpeg:50" $< $@.png && mv $@.png $@
-j90randomsizej80	= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|aspect-resize:$(RANDOMSIZE)|jpeg:80" $< $@.png && mv $@.png $@
-# centered cropping (detectable by corner sync)
-#crop75j90		= convert $< -gravity Center -crop 75x75%+0+0 -quality 90	-strip $@.jpg && mv $@.jpg $@
-#crop50scale200j90	= convert $< -gravity Center -crop 50x50%+0+0 -resize 200% -quality 90	-strip $@.jpg && mv $@.jpg $@
-#noisecrop50scale200j90	= convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% 		   -quality 90	-strip $@.jpg && mv $@.jpg $@
-#noise2crop50scale200j90 = convert $< -seed $1 +noise Gaussian -gravity Center -crop 50x50%+0+0 -resize 200% +noise Gaussian -quality 90	-strip $@.jpg && mv $@.jpg $@
-# attacks not useful for corner sync
-#rot5to15j90		= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:5:15|jpeg:90" $< $@.png && mv $@.png $@
-rot0to180j90		= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:0:180|jpeg:90" $< $@.png && mv $@.png $@
-j90crop50scaleto512j80  = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:50:50|scaleto:512|jpeg:80" $< $@.png && mv $@.png $@
-#j90crop60scaleto512j70  = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|crop:60:60|scaleto:512|jpeg:70" $< $@.png && mv $@.png $@
+
+info:
+	@echo EXTENDED_ATTACKS=$(EXTENDED_ATTACKS)
+	@echo DEFAULT_ATTACKS=$(DEFAULT_ATTACKS)
 
 define ATTACK_RULE
 $(1:%=attack/%)/%: wmarked/%
@@ -115,7 +144,7 @@ $(foreach A, $(ATTACKS), $(eval $(call ATTACK_RULE, $(A))))
 .NOTINTERMEDIATE: $(ATTACK_IMAGES)
 
 # == Random Size Configuration ==
-ATTACK_RANDOMSIZE := attack/j90randomsizej80
+ATTACK_RANDOMSIZE := attack/j90randomsizej80g
 -include randomsize.inc
 
 # == attacks ==
