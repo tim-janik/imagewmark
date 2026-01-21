@@ -775,8 +775,8 @@ def auto_convolution_sync (W_est, args, window, face_J, J_Wvar):
 
 def detect_watermark_with_window (face_J, orig_J, strength, args, window, wmasked, use_corner_sync, conv_decoder):
   cpusecs = common.cpusecs_start()
-  sync_label = "CORNER" if use_corner_sync else "ACNF"
-  dprint ("==== using (%dx%d) window for local_mean/local_variance; %s sync ====" % (window[0], window[1], sync_label))
+  sync_label = "cornersync" if use_corner_sync else "acnf"
+  dprint ("==== using (%dx%d) window for local_mean/local_variance; %s sync ====" % (window[0], window[1], sync_label.upper()))
   if use_corner_sync:
     face_J = corner_sync_scale (face_J)
     if orig_J is not None:
@@ -784,18 +784,18 @@ def detect_watermark_with_window (face_J, orig_J, strength, args, window, wmaske
     W_est, J_Wvar = estimate_watermark (face_J, orig_J, strength, window)
     S2_xpeaks = np.zeros (W_est.shape)
     grid_lists = corner_sync (W_est, wmasked, conv_decoder)
-    result = watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xpeaks, args, window, conv_decoder)
+    result = watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xpeaks, args, window, conv_decoder, sync_label)
     common.cpusecs_add ('cornersync_detect', cpusecs)
     return result
   else:
     W_est, J_Wvar = estimate_watermark (face_J, orig_J, strength, window)
     S2_xpeaks, p2g, grid_lists = auto_convolution_sync (W_est, args, window, face_J, J_Wvar)
-    result = watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xpeaks, args, window, conv_decoder)
+    result = watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xpeaks, args, window, conv_decoder, sync_label)
     stop_peaks_to_grid (p2g)
     common.cpusecs_add ('peaks2grid_detect', cpusecs)
     return result
 
-def watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xpeaks, args, window, conv_decoder):
+def watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xpeaks, args, window, conv_decoder, sync_label):
   ZOOM = 2
   Lr   = config.Lr
   Ldim = config.payload_shape[0]
@@ -851,6 +851,7 @@ def watermark_from_grid_lists (grid_lists, face_J, orig_J, W_est, wmasked, S2_xp
         time_now = time()
         wmi['time'] = time_now - wmi_time
         wmi['window'] = window[0]
+        wmi['sync'] = sync_label
         wmi_list.append (wmi)
         wmi_time = time_now
         if wmi['jsd'] >= best_jsd:
