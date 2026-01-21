@@ -125,15 +125,14 @@ def main():
   parser.add_argument ("-c", "--clean", action = "store_true", help = "Clean output directory before generating tests.")
   parser.add_argument ("-m", "--max-count", type = int, default = 0, help = "Maximum number of images to use for testing (0 for all).")
   parser.add_argument ("-O", "--outputdir", help = "Directory to place generated tests. Defaults to CWD.", default = ".")
-  parser.add_argument ("--seed", type = int, default = None, help = "Seed for random number generators")
+  parser.add_argument ("--seed", type = int, default = 0, help = "Seed for random number generators")
   parser.add_argument ("--without-original", action = "store_true", help = "Disable use of original image for detection.")
   parser.add_argument ("--cornersync", choices = ['on', 'off', 'auto'], default = 'auto', help = "Set cornersync aided detection mode (on|off|auto).")
   parser.add_argument ("--attacks", type = str, default = 'all', help = "Comma-separated list of attacks to run.")
   args = parser.parse_args()
-  seed = args.seed if args.seed is not None else random.randint (0, 2**32 - 1)
-  random.seed (seed)
-  np.random.seed (seed)
-  eprint (f"SEED: {seed}")
+  eprint (f"SEED: {args.seed}")
+  random.seed (args.seed)
+  np.random.seed (args.seed)
   output_dir = os.path.abspath (args.outputdir)
   imagedir = os.path.abspath (args.imagedir)
   if not os.path.isdir (imagedir):
@@ -150,6 +149,7 @@ def main():
   eprint ("adding Makefile:", outmk)
   with open (inmk, 'r+', encoding='utf-8') as src, open (outmk, 'w', encoding='utf-8') as dst:
     content = src.read()
+    content = re.sub (r'^SEED\s*\?=.*', f'SEED := {args.seed}', content, 0, re.M)
     content = re.sub (r'^SRCDIR\s*\?=.*', f'SRCDIR := {SRCDIR}', content, 0, re.M)
     content = re.sub (r'^WITHOUT_ORIGINAL\s*\?=.*', f'WITHOUT_ORIGINAL := {str (args.without_original).lower()}', content, 0, re.M)
     content = re.sub (r'^CORNERSYNC_MODE\s*\?=.*', f'CORNERSYNC_MODE := {str (args.cornersync).lower()}', content, 0, re.M)
@@ -167,7 +167,9 @@ def main():
         input_image_filepaths.append (full_path)
 
   # shuffle input files to ensure random selection
-  random.shuffle (input_image_filepaths)
+  input_image_filepaths.sort()
+  if args.seed != 0:
+    random.shuffle (input_image_filepaths)
 
   # draw randomized resolutions
   resolution_min, resolution_max, resolution_pdf, resolution_cdf, resolution_icdf = setup_icdf ()
