@@ -135,7 +135,7 @@ extract/%.json: attack/%
 .NOTINTERMEDIATE: $(EXTRACT_FILES)
 
 # == pandoc rules ==
-REPORT_FORMAT := markdown+compact_definition_lists+autolink_bare_uris+emoji+lists_without_preceding_blankline-smart-raw_tex-raw_html
+REPORT_FORMAT := markdown+autolink_bare_uris+emoji+lists_without_preceding_blankline-smart-raw_tex-raw_html
 %.html: %.md $(MAKEFILE)
 	$(QGEN)
 	$Q pandoc -f "$(REPORT_FORMAT)" $< -o $@.tmp.html

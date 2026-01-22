@@ -24,8 +24,9 @@ Imagewmark supports short and long options which start with two dashes (`--`).
 
 `-h`, `--help`
   : Show a help message about command line usage.
+
 `-v`, `--version`
-  : Print information about the program version.
+: Print information about the program version.
 
 # COMMANDS
 
@@ -38,27 +39,37 @@ in *INPUT_IMG* and write the result into *OUTPUT_IMG*.
 **Command Options:**
 
 `-h`, `--help`
-  : Show this help message and exit.
+: Show this help message and exit.
+
 `--dynamic-zoom` *DYNAMIC_ZOOM*
-  : Zoom watermark depending on image size (default: -1).
+: Zoom watermark depending on image size (default: -1).
+
 `--zoom` *ZOOM*
-  : Set zoom factor for watermark (default: -1).
+: Set zoom factor for watermark (default: -1).
+
 `--trace-psnr`
-  : Compute PSNR (default: False).
+: Compute PSNR (default: False).
+
 `--trace-quality`
-  : Compute quality metrics (default: False).
+: Compute quality metrics (default: False).
+
 `-v`, `--verbose`
-  : Increase output messages or debugging info for multiple `-vv` (default: 0).
+: Increase output messages or debugging info for multiple `-vv` (default: 0).
+
 `-q`, `--quiet`
-  : Reduce output verbosity (default: None).
+: Reduce output verbosity (default: None).
+
 `--strength` *STRENGTH*
-  : Strength for embedded watermark (default: 2).
+: Strength for embedded watermark (default: 2).
+
 `-P` *PLOTS*
-  : Configure plots with colon separated keywords, 'most' or 'all' (default: None).
+: Configure plots with colon separated keywords, 'most' or 'all' (default: None).
+
 `--key` *KEY*
-  : Load watermarking key from file (default: None).
+: Load watermarking key from file (default: None).
+
 `--test-key` *TEST_KEY*
-  : Watermarking key (default: None).
+: Watermarking key (default: None).
 
 ## Get Watermark
 **get** [**OPTIONS**] *INPUT_IMG*
@@ -68,37 +79,52 @@ Extract a watermark message from the image given as *INPUT_IMG*.
 **Command Options:**
 
 `-h`, `--help`
-  : Show this help message and exit.
+: Show this help message and exit.
+
 `--expect` *EXPECT*
-  : Expected bit pattern for early exit (default: None).
+: Expected bit pattern for early exit (default: None).
+
 `--json` [*JSONFILE*]
-  : Write JSON results into file (default: None).
+: Write JSON results into file (default: None).
+
 `--dump` *DUMP*
-  : Debug flags to dump intermediate stages (default: ).
+: Debug flags to dump intermediate stages (default: ).
+
 `--norm-peak-count` *NORM_PEAK_COUNT*
-  : Number of normalized peaks to use for grid (default: 250).
+: Number of normalized peaks to use for grid (default: 250).
+
 `--raw-peak-count` *RAW_PEAK_COUNT*
-  : Number of raw peaks to use for grid (default: 250).
+: Number of raw peaks to use for grid (default: 250).
+
 `--jsd-threshold` *JSD_THRESHOLD*
-  : Jensen-Shannon divergence threshold that is sufficient to stop searching for more watermarks (default: 55%).
+: Jensen-Shannon divergence threshold that is sufficient to stop searching for more watermarks (default: 55%).
+
 `--cornersync` {`on`,`off`,`auto`}
-  : Set cornersync aided detection mode: 'on' forces it, 'off' disables it, 'auto' is the default.
+: Set cornersync aided detection mode: 'on' forces it, 'off' disables it, 'auto' is the default.
+
 `--perspective`
-  : Search for optimal perspective grids (default: False).
+: Search for optimal perspective grids (default: False).
+
 `--original` *ORIGINAL*
-  : Use original image for detection (default: ).
+: Use original image for detection (default: ).
+
 `-v`, `--verbose`
-  : Increase output messages or debugging info for multiple `-vv` (default: 0).
+: Increase output messages or debugging info for multiple `-vv` (default: 0).
+
 `-q`, `--quiet`
-  : Reduce output verbosity (default: None).
+: Reduce output verbosity (default: None).
+
 `--strength` *STRENGTH*
-  : Strength for embedded watermark (default: 2).
+: Strength for embedded watermark (default: 2).
+
 `-P` *PLOTS*
-  : Configure plots with colon separated keywords, 'most' or 'all' (default: None).
+: Configure plots with colon separated keywords, 'most' or 'all' (default: None).
+
 `--key` *KEY*
-  : Load watermarking key from file (default: None).
+: Load watermarking key from file (default: None).
+
 `--test-key` *TEST_KEY*
-  : Watermarking key (default: None).
+: Watermarking key (default: None).
 
 ## Generate Key Files
 **gen-key** [`-h`] [`-v`] [`-q`] *OUTPUT_KEY_FILE*
@@ -108,11 +134,13 @@ Generate a 128-bit watermarking key and write the result in hexadecimals into *O
 **Command Options:**
 
 `-h`, `--help`
-  : Show this help message and exit.
+: Show this help message and exit.
+
 `-v`, `--verbose`
-  : Increase output messages or debugging info for multiple `-vv` (default: 0).
+: Increase output messages or debugging info for multiple `-vv` (default: 0).
+
 `-q`, `--quiet`
-  : Reduce output verbosity (default: None).
+: Reduce output verbosity (default: None).
 
 
 # EXAMPLES

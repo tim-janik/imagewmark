@@ -4,6 +4,7 @@ CXX		?= clang++
 CXXSTD		:= -std=gnu++17
 CXXFLAGS	:= -Wall -O3 -g
 LDLIBS		:= -lOpenImageIO -lOpenImageIO_Util -lgcrypt
+CXXDEPS		:=
 LINK		 = $(CXX) $(CXXSTD) $(LDFLAGS)
 CCACHE		?= $(if $(CCACHE_DIR), ccache)
 
@@ -16,6 +17,18 @@ cxx/opencv4.libs   != pkg-config --libs opencv4
 ifeq ($(cxx/opencv4.cflags)$(cxx/opencv4.libs),)
 $(error Failed to find OpenCV4 (opencv4.pc) via pkg-config)
 endif
+
+# == libcli11-dev ==
+CLI11_VERSION	:= v2.6.1
+CLI11_URL	:= 'https://github.com/CLIUtils/CLI11/releases/download/$(CLI11_VERSION)/CLI11.hpp'
+CLI11_SHA256	:= 8bad421104bbac1d763be60e3f833768e72c2d9f6fa14a6d19162979ba97c2e9
+cxx/CLI/CLI.hpp:
+	$Q mkdir -p cxx/CLI/
+	$Q wget -O $@.tmp $(CLI11_URL)
+	$Q echo "$(CLI11_SHA256)  $@.tmp" | sha256sum -c -
+	$Q mv $@.tmp $@
+CLEANFILES += cxx/CLI/CLI.hpp
+CXXDEPS += cxx/CLI/CLI.hpp
 
 # == C++ Rules ==
 # == Implicit Rules ==
@@ -30,6 +43,7 @@ CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 cxx/imagewmark-cxx.sources := cxx/imagewmark.cc cxx/embed.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc
 cxx/imagewmark-cxx.objects := $(cxx/imagewmark-cxx.sources:.cc=.o)
 cxx/imagewmark-cxx.LIBS    := $(cxx/opencv4.libs)
+$(cxx/imagewmark-cxx.objects): $(CXXDEPS)
 cxx/embed.cc.FLAGS         := $(cxx/opencv4.cflags)
 cxx/imagewmark-cxx: $(cxx/imagewmark-cxx.objects)
 	$(QGEN)

@@ -1,7 +1,7 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 
 # == pandoc for manual pages ==
-doc/markdown-flavour := markdown-hard_line_breaks+compact_definition_lists+pandoc_title_block+autolink_bare_uris+emoji+lists_without_preceding_blankline
+doc/markdown-flavour := markdown-hard_line_breaks+pandoc_title_block+autolink_bare_uris+emoji+lists_without_preceding_blankline
 doc/mans1            :=
 
 # == doc/imagewmark-arch--help.md Helper ==
