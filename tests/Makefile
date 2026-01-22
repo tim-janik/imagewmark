@@ -86,6 +86,10 @@ j90scaleto512j80       = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|s
 DEFAULT_ATTACKS       += j90scaleto512j80
 j90randomsizej80g = $(SRCDIR)/tests/wmtool.py --seed $1 --attack "jpeg:90|aspect-resize:$(RANDOMSIZE)|jpeg:80" $< $@.png && mv $@.png $@
 DEFAULT_ATTACKS       += j90randomsizej80g
+brightnesscontrast10j90 = convert $<	-seed $1 -brightness-contrast 10x10 -quality 90	-strip $@.jpg && mv $@.jpg $@
+DEFAULT_ATTACKS        += brightnesscontrast10j90
+gamma05j90              = convert $<	-seed $1 -gamma 0.5		   -quality 90	-strip $@.jpg && mv $@.jpg $@
+DEFAULT_ATTACKS        += gamma05j90
 # geometrical attacks
 rot0to180j90g		= $(SRCDIR)/tests/wmtool.py --seed $1 --attack "rotate:0:180|jpeg:90" $< $@.png && mv $@.png $@
 DEFAULT_ATTACKS        += rot0to180j90g
