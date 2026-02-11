@@ -89,6 +89,8 @@ def generate_attack_statistics (n_input_files, acnf_matching, cs_matching, align
   n_cs_valid = {}
   n_acnf_valid = {}
   n_aligned = {}
+  total_fail_perc = 0.0
+  total_match_perc = 0.0
   # strip ATTACKNAMEseed123 to just ATTACKNAME
   strip_seed = lambda attack: re.sub(r'seed[0-9]+$', '', attack)
   # setup counters
@@ -98,6 +100,7 @@ def generate_attack_statistics (n_input_files, acnf_matching, cs_matching, align
     n_acnf_valid[attack] = 0
     n_cs_valid[attack] = 0
     n_aligned[attack] = 0
+  num_attacks = len (n_input)
   # merge counts from different seeds of the same attack
   for attackdir in ATTACKS:
     attack = strip_seed (attackdir)
@@ -114,11 +117,15 @@ def generate_attack_statistics (n_input_files, acnf_matching, cs_matching, align
   s += 'Total input files: %d\n\n' % n_input_files
   s += '| **Attack** | **ACNF** | **CS** | **AO** | **Fail** | **Match** |\n'
   s += '|----------------------------|-----:|:----:|:----:|-----:|----:|\n'
+  # Attack stats
   for attack in sorted (n_input.keys()):
     is_geometric_attack = bool (re.search (r'(?<![A-Za-z])g$', attack))
     cs_weight = 1 if is_geometric_attack else 0.5       # assume CS only catches 50% of leaks
     valid_count = n_acnf_valid[attack] + n_cs_valid[attack] * cs_weight
     mismatch_perc = (n_input[attack] - valid_count) * 100.0 / n_input[attack]
+    match_perc = 100 - mismatch_perc
+    total_fail_perc += mismatch_perc
+    total_match_perc += match_perc
     H,E = ('**','') if mismatch_perc < 1e-9 else ('','**')      # highlight matches <= 90%
     s += '| %s | %d/%d | %d | %d | %s%.1f%%%s | %s%.1f%%%s\n' % \
       (attack,
@@ -126,7 +133,13 @@ def generate_attack_statistics (n_input_files, acnf_matching, cs_matching, align
        n_cs_valid[attack],
        n_aligned[attack],
        E, mismatch_perc, E,
-       H, 100 - mismatch_perc, H)
+       H, match_perc, H)
+  # Add average row to the table
+  if num_attacks > 0:
+    avg_fail_perc = total_fail_perc / num_attacks
+    avg_match_perc = total_match_perc / num_attacks
+    s += '| **Average:** | | | | **%.1f%%** | **%.1f%%** |\n' % (avg_fail_perc, avg_match_perc)
+
   print (s)
 
 # Timings
