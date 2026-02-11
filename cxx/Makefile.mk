@@ -14,6 +14,7 @@ include $(wildcard ./*.d ./*/*.d)
 # == OpenCV4 ==
 cxx/opencv4.cflags != pkg-config --cflags opencv4
 cxx/opencv4.libs   != pkg-config --libs opencv4
+# Minimal required libs: cxx/opencv4.libs := -lgcrypt -lOpenImageIO -lopencv_core -lopencv_imgproc -lopencv_imgcodecs
 ifeq ($(cxx/opencv4.cflags)$(cxx/opencv4.libs),)
 $(error Failed to find OpenCV4 (opencv4.pc) via pkg-config)
 endif
