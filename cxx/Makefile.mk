@@ -80,10 +80,6 @@ cxx/cornersync: $(cxx/cornersync.objects)
 ALL_TARGETS += cxx/cornersync
 
 # == Tests ==
-cxx/test-imagewmark-add: cxx/imagewmark
-	@: # TODO: implement Cxx based `imagewmark add` test
-	$Q echo "  SKIPPING" $@
-cxx/check: cxx/test-imagewmark-add
 cxx/test-convcode-check: cxx/wmops
 	$(QCHECK)
 	$Q cxx/wmops convcode-check
@@ -91,3 +87,16 @@ cxx/test-convcode-check: cxx/wmops
 cxx/check: cxx/test-convcode-check
 .PHONY: cxx/check cxx/test-convcode-check cxx/test-imagewmark-add
 check: cxx/check
+
+# == test add --py ==
+cxx/check-add--py-768:
+	$Q echo '  CHECK   ' $@
+	$Q convert tests/example01.svg -resize 768 $@.png
+	$Q ./cxx/imagewmark add --py $@.png $@.wm.png $(src/watermark)
+	$Q ./imagewmark get $@.wm.png --json $@.json
+	$Q grep -qE '\b$(src/watermark)\b' $@.json || \
+		{ echo "$@.png: failed to detect watermark" >&2 ; false ; }
+	$Q rm $@.png $@.wm.png $@.json
+	$Q echo '  OK      ' $@
+.PHONY: cxx/check-add--py-768
+cxx/check: cxx/check-add--py-768
