@@ -14,7 +14,7 @@ main (int argc, char *argv[])
 {
   argv0 = argv[0]; // used for error handling
 
-  CLI::App app { "imagewmark - Image Watermarking Tool" };
+  CLI::App app { "wmops - Watermark operation helper" };
   app.ignore_case(); // Allow case-insensitive subcommands (e.g., GEN-KEY vs gen-key)
   app.require_subcommand (1); // Require at least one command to be present
   app.fallthrough(); // Allow global options as part of subcommands
@@ -49,10 +49,6 @@ main (int argc, char *argv[])
   std::string get_input;
   auto *cmd_get = app.add_subcommand ("get", "Extract watermarks from image");
   cmd_get->add_option ("inputimage", get_input, "Input image")->required();
-
-  // ADD <inimage> <outimage> <wmark>
-  AddOptions add_options;
-  CLI::App *cmd_add = imagewmark_add_options (app, add_options);
 
   // RAND
   auto *cmd_rand = app.add_subcommand ("rand", "Internal key based PRNG");
@@ -112,8 +108,6 @@ main (int argc, char *argv[])
       die (5, "failed to create `%s`: %s\n", gen_key_outfile.c_str(), strerror (errno));
   } else if (cmd_get->parsed()) {
     image_info (get_input);
-  } else if (cmd_add->parsed()) {
-    return imagewmark_add (add_options);
   } else if (cmd_rand->parsed()) {
     const std::pair<Random::Stream, const char *> streams[] = { { Random::Stream::wm_pattern, "wm_pattern" },
                                                                 { Random::Stream::wm_mask, "wm_mask" },
