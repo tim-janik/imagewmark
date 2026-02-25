@@ -37,9 +37,9 @@ include cxx/Makefile.mk
 include doc/Makefile.mk
 
 # Rules
-imagewmark:
+imagewmark: cxx/imagewmark
 	$(QGEN)
-	$Q ln -sf src/imagewmark.py $@
+	$Q ln -sf cxx/imagewmark $@
 ALL_TARGETS += imagewmark
 
 # == install ==
