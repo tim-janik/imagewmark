@@ -83,10 +83,10 @@ def cli_parser():
 # gen-key command
 def gen_key (keyfile, args):
   import subprocess, os
-  cxx_imagewmark = Path (__file__).resolve().parent.parent / "cxx" / "imagewmark-cxx"
-  proc = subprocess.run ([ cxx_imagewmark, 'gen-key', keyfile ])
+  cxx_wmops = Path (__file__).resolve().parent.parent / "cxx" / "wmops"
+  proc = subprocess.run ([ cxx_wmops, 'gen-key', keyfile ])
   if proc.returncode:
-    raise RuntimeError ("Failed to generate key (%d): %s" % (cirand.returncode, ' '.join (cmdline)))
+    raise RuntimeError ("Failed to generate key (%d): %s" % (proc.returncode, ' '.join ([str (cxx_wmops), 'gen-key', keyfile])))
 
 # parse args
 args = cli_parser().parse_args()
