@@ -20,7 +20,7 @@ src/check: src/check-py-$1
 src/check-cxx-$1:
 	$(Q) echo '  CHECK   ' $$@
 	$(Q) convert tests/example01.svg -resize $1 $$@.png
-	$(Q) ./cxx/imagewmark-cxx add $$@.png $$@.wm.png $(src/watermark)
+	$(Q) ./cxx/imagewmark add $$@.png $$@.wm.png $(src/watermark)
 	$(Q) test $1 -gt 2048 \
 	|| { convert $$@.wm.png -resize 1024 $$@.small.png && mv $$@.small.png $$@.wm.png ; }
 	$(Q) ./imagewmark get $$@.wm.png --json $$@.json
