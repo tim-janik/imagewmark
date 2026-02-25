@@ -40,16 +40,26 @@ compilecxxflags = $(CXXFLAGS) $(EXTRA_FLAGS) $($<.FLAGS) $($@.FLAGS) -MQ $@ -MMD
 	$Q $(CCACHE) $(CXX) $(CXXSTD) $(compiledefs) $(compilecxxflags) -o $@ -c $<
 CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 
-# == cxx/imagewmark-cxx ==
-cxx/imagewmark-cxx.sources := cxx/imagewmark.cc cxx/embed.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc
-cxx/imagewmark-cxx.objects := $(cxx/imagewmark-cxx.sources:.cc=.o)
-cxx/imagewmark-cxx.LIBS    := $(cxx/opencv4.libs)
-$(cxx/imagewmark-cxx.objects): $(CXXDEPS)
-cxx/embed.cc.FLAGS         := $(cxx/opencv4.cflags)
-cxx/imagewmark-cxx: $(cxx/imagewmark-cxx.objects)
+# == cxx/imagewmark (add only) ==
+cxx/imagewmark.sources := cxx/imagewmark-add.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/embed.cc
+cxx/imagewmark.objects := $(cxx/imagewmark.sources:.cc=.o)
+cxx/imagewmark.LIBS    := $(cxx/opencv4.libs)
+$(cxx/imagewmark.objects): $(CXXDEPS)
+cxx/embed.cc.FLAGS     := $(cxx/opencv4.cflags)
+cxx/imagewmark: $(cxx/imagewmark.objects)
 	$(QGEN)
-	$Q $(LINK) $(cxx/imagewmark-cxx.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
-ALL_TARGETS += cxx/imagewmark-cxx
+	$Q $(LINK) $(cxx/imagewmark.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+ALL_TARGETS += cxx/imagewmark
+
+# == cxx/wmops (get and helpers) ==
+cxx/wmops.sources := cxx/wmops.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc
+cxx/wmops.objects := $(cxx/wmops.sources:.cc=.o)
+cxx/wmops.LIBS    := $(cxx/opencv4.libs)
+$(cxx/wmops.objects): $(CXXDEPS)
+cxx/wmops: $(cxx/wmops.objects)
+	$(QGEN)
+	$Q $(LINK) $(cxx/wmops.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+ALL_TARGETS += cxx/wmops
 
 # == cxx/peaks2grid ==
 cxx/peaks2grid.sources := cxx/peaks2grid.cc
@@ -70,13 +80,13 @@ cxx/cornersync: $(cxx/cornersync.objects)
 ALL_TARGETS += cxx/cornersync
 
 # == Tests ==
-cxx/test-imagewmark-add: cxx/imagewmark-cxx
+cxx/test-imagewmark-add: cxx/imagewmark
 	@: # TODO: implement Cxx based `imagewmark add` test
 	$Q echo "  SKIPPING" $@
 cxx/check: cxx/test-imagewmark-add
-cxx/test-convcode-check: cxx/imagewmark-cxx
+cxx/test-convcode-check: cxx/wmops
 	$(QCHECK)
-	$Q cxx/imagewmark-cxx convcode-check
+	$Q cxx/wmops convcode-check
 	$(QOK)
 cxx/check: cxx/test-convcode-check
 .PHONY: cxx/check cxx/test-convcode-check cxx/test-imagewmark-add

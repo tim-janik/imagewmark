@@ -48,7 +48,7 @@ install:
 	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc $(PREFIX)/share/man/man1
 	cp -Pp imagewmark .version $(PRJDIR)
 	cp -Pp src/*.py $(PRJDIR)/src
-	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark-cxx $(PRJDIR)/cxx
+	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark cxx/wmops $(PRJDIR)/cxx
 	cp -Pp doc/imagewmark.1 doc/imagewmark-arch.html $(PRJDIR)/doc
 	ln -sf ../../../$(LIBEXEC)/doc/imagewmark.1 $(PREFIX)/share/man/man1/imagewmark-$(PKGVERSION).1
 	ln -sf imagewmark-$(PKGVERSION).1 $(PREFIX)/share/man/man1/imagewmark.1
