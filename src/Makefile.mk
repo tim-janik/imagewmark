@@ -7,7 +7,7 @@ define CHECK_RESOLUTION
 src/check-py-$1:
 	$(Q) echo '  CHECK   ' $$@
 	$(Q) convert tests/example01.svg -resize $1 $$@.png
-	$(Q) ./imagewmark add $$@.png $$@.wm.png $(src/watermark)
+	$(Q) src/imagewmark.py add $$@.png $$@.wm.png $(src/watermark)
 	$(Q) test $1 -gt 2048 \
 	|| { convert $$@.wm.png -resize 1024 $$@.small.png && mv $$@.small.png $$@.wm.png ; }
 	$(Q) ./imagewmark get $$@.wm.png --json $$@.json

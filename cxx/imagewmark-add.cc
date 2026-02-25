@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <libgen.h>
+#include <cstring>
 
 const char *argv0 = nullptr;
 
@@ -37,10 +38,31 @@ exec_python (int argc, char *argv[])
   die (1, "failed to exec python3: %s", strerror (errno));
 }
 
+// Check if the command line specifies the `add` subcommand
+static bool
+is_add_command (int argc, char *argv[])
+{
+  int found_add_cmd = -1;
+  // skip global options to find subcommand
+  for (int i = 1; i < argc; i++) {
+    if (strcmp (argv[i], "--key") == 0 || strcmp (argv[i], "--test-key") == 0) {
+      i++;                      // skip global option with value
+      continue;
+    }
+    if (found_add_cmd < 0 && argv[i][0] != '-') // found subcommand
+      found_add_cmd = 0 == strcmp (argv[i], "add");
+  }
+  return found_add_cmd == true;
+}
+
 int
 main (int argc, char *argv[])
 {
   argv0 = argv[0]; // used for error handling
+
+  // --- Delegate Commands ---
+  if (!is_add_command (argc, argv))
+    exec_python (argc, argv);
 
   CLI::App app { "imagewmark - Add watermark to image" };
   app.ignore_case(); // Allow case-insensitive subcommands (e.g., GEN-KEY vs gen-key)
