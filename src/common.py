@@ -203,8 +203,8 @@ def load_key (keyfile, test_key):
   global key_based_prng
   dprint ("load_key:", keyfile, test_key)
   import os, subprocess, json
-  cxx_imagewmark = os.path.join (os.path.dirname (__file__), "..", "cxx", "imagewmark-cxx")
-  cmdline = [ cxx_imagewmark, 'rand' ]
+  cxx_wmops = os.path.join (os.path.dirname (__file__), "..", "cxx", "wmops")
+  cmdline = [ cxx_wmops, 'rand' ]
   if test_key:
     cmdline += [ '--test-key', test_key ]
   if keyfile:

@@ -5,8 +5,8 @@ import numpy as np
 import common
 
 def cmdline (mode, args):
-  cxx_imagewmark = os.path.join (os.path.dirname (__file__), "..", "cxx", "imagewmark-cxx")
-  cmdline = [ cxx_imagewmark, mode ]
+  cxx_wmops = os.path.join (os.path.dirname (__file__), "..", "cxx", "wmops")
+  cmdline = [ cxx_wmops, mode ]
   if args.test_key:
     cmdline += [ '--test-key', args.test_key ]
   if args.key:

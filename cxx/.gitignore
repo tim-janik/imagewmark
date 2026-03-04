@@ -1,8 +1,9 @@
 /*.o
 /*.o.d
-/imagewmark-cxx
+/imagewmark
+/wmops
 /autocfg.hh
-/imagewmark-cxx.map
+/*.map
 /cornersync
 /peaks2grid
 /CLI/

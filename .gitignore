@@ -1,3 +1,6 @@
+*
+!*.*
+x*
 *.html
 *.jpeg
 *.jpg
@@ -9,6 +12,12 @@
 *.png
 *.tiff
 *.zst
+*.o
+*.d
+*.a
+*.so
+*.lib
+*.dll
 .version
 /BACKLOG.md
 /check*
@@ -16,5 +25,3 @@
 __pycache__
 olddocs/
 report.md
-!x*.*
-x*
