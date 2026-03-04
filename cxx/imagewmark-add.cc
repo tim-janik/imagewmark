@@ -42,6 +42,8 @@ exec_python (int argc, char *argv[])
 static bool
 is_add_command (int argc, char *argv[])
 {
+  const char *env_options = getenv ("IMAGEWMARK_OPTIONS");
+  bool found_py = env_options && strstr (env_options, "--py");
   int found_add_cmd = -1;
   // skip global options to find subcommand
   for (int i = 1; i < argc; i++) {
@@ -51,8 +53,9 @@ is_add_command (int argc, char *argv[])
     }
     if (found_add_cmd < 0 && argv[i][0] != '-') // found subcommand
       found_add_cmd = 0 == strcmp (argv[i], "add");
+    found_py = found_py || 0 == strcmp (argv[i], "--py");
   }
-  return found_add_cmd == true;
+  return found_add_cmd == true && !found_py;
 }
 
 int

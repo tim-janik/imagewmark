@@ -52,6 +52,7 @@ imagewmark_add_options (CLI::App &app, AddOptions &opt)
   add_cmd->add_option ("-z,--zoom", opt.zoom, "Set zoom factor for watermark")->default_val (opt.zoom);
   add_cmd->add_flag ("--trace-psnr", opt.trace_psnr, "Compute PSNR");
   add_cmd->add_flag ("--trace-quality", opt.trace_quality, "Compute quality metrics");
+  add_cmd->add_flag ("--py", "Delegate to Python implementation");
   return add_cmd;
 }
 
