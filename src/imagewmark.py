@@ -60,6 +60,7 @@ def cli_parser():
   addp.add_argument ('--zoom', type = float, default = -1, help = "Set zoom factor for watermark")
   addp.add_argument ('--trace-psnr', action='store_true', help='Compute PSNR')
   addp.add_argument ('--trace-quality', action='store_true', help='Compute quality metrics')
+  addp.add_argument ('--py', action='store_true', help='Delegate to Python implementation')
   add_common_args (addp, True)
   # GET
   getp = cmdp.add_parser ('get', help = "Extract a watermark message from an image", formatter_class = argparse.ArgumentDefaultsHelpFormatter)
