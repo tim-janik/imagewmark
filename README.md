@@ -52,10 +52,10 @@ To pass image files in and out of the eocker environment, a `/data` volume needs
 to be provided for `docker run`.
 
 	# Create docker image from source repositors
-	docker build -f Dockerfile -t imagewmark-0 .
+	docker build -f Dockerfile -t imagewmark-0-6 .
 	# Run the dockerized executable, using the current dir for image io
-	docker run -ti --rm -v $PWD:/data imagewmark-0 add in.png out.png 1234
-	docker run -ti --rm -v $PWD:/data imagewmark-0 get out.png
+	docker run -ti --rm -v $PWD:/data imagewmark-0-6 add in.png out.png 1234
+	docker run -ti --rm -v $PWD:/data imagewmark-0-6 get out.png
 
 
 ## EXAMPLES
