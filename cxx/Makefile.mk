@@ -20,9 +20,9 @@ $(error Failed to find OpenCV4 (opencv4.pc) via pkg-config)
 endif
 
 # == libcli11-dev ==
-CLI11_VERSION	:= v2.6.1
+CLI11_VERSION	:= v2.6.2
 CLI11_URL	:= 'https://github.com/CLIUtils/CLI11/releases/download/$(CLI11_VERSION)/CLI11.hpp'
-CLI11_SHA256	:= 8bad421104bbac1d763be60e3f833768e72c2d9f6fa14a6d19162979ba97c2e9
+CLI11_SHA256	:= 227a16fe5f9f8ada80c3c409492475536f597e7bd83a6c26eacc3c8c149a9295
 cxx/CLI/CLI.hpp:
 	$Q mkdir -p cxx/CLI/
 	$Q wget -O $@.tmp $(CLI11_URL)
