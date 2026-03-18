@@ -41,10 +41,10 @@ in *INPUT_IMG* and write the result into *OUTPUT_IMG*.
 `-h`, `--help`
 : Show this help message and exit.
 
-`--dynamic-zoom` *DYNAMIC_ZOOM*
+`-d`, `--dynamic-zoom` *DYNAMIC_ZOOM*
 : Zoom watermark depending on image size (default: -1).
 
-`--zoom` *ZOOM*
+`-z`, `--zoom` *ZOOM*
 : Set zoom factor for watermark (default: -1).
 
 `--trace-psnr`
@@ -59,7 +59,7 @@ in *INPUT_IMG* and write the result into *OUTPUT_IMG*.
 `-q`, `--quiet`
 : Reduce output verbosity (default: None).
 
-`--strength` *STRENGTH*
+`-s`, `--strength` *STRENGTH*
 : Strength for embedded watermark (default: 2).
 
 `-P` *PLOTS*
@@ -148,7 +148,7 @@ Generate a 128-bit watermarking key and write the result in hexadecimals into *O
 1. **Generate a 128-bit watermarking key:** \
    Create a private key to encrypt and decrypt the payload.
    ```sh
-   imagewmark gen-key --output mysecret.key
+   imagewmark gen-key mysecret.key
    ```
 
 2. **Embed a watermark message in an image:** \
