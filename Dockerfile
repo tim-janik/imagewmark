@@ -22,10 +22,10 @@ RUN apt-get install -y build-essential \
 # Setup clean source dir
 ADD . /imagewmark
 WORKDIR /imagewmark
-RUN git clean -f
+RUN git clean -fdx
 
 # Build and install
-RUN make all
+RUN make all -j`nproc`
 #RUN make -C install
 
 # Volume for file IO
