@@ -33,7 +33,7 @@ class VerboseAction (argparse.Action):
 
 # Setup CLI parsr for embedding
 def cli_parser():
-  p = argparse.ArgumentParser (description = blurb, formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+  p = argparse.ArgumentParser (prog = "imagewmark", description = blurb, formatter_class = argparse.ArgumentDefaultsHelpFormatter)
   a = p.add_argument
   def add_common_args (parser, addget):
     parser.add_argument ('-v', '--verbose', nargs = 0, action = VerboseAction, dest = 'verbose', default = config.verbose,
