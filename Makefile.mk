@@ -84,7 +84,7 @@ distcheck:
 	$Q git archive -o $(distname).tar --prefix=$(distname)/ HEAD
 	$Q rm -f $(distname).tar.zst && zstd --ultra -22 --rm $(distname).tar && ls -lh $(distname).tar.zst
 	$Q T=`mktemp -d --tmpdir iwmtest-XXXXXX` && cd $$T && tar xvf $(abspath $(distname).tar.zst) \
-	&& cd imagewmark-$(distversion) \
+	&& cd $(distname) \
 	&& nice make all -j`nproc` \
 	&& make PREFIX=$$T/inst install \
 	&& make PREFIX=$$T/inst installcheck -j`nproc` \
