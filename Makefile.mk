@@ -14,6 +14,7 @@ QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" 
 QCHECK		 = $(QECHO) CHECK $@
 QOK		 = $(QECHO) OK $@
 PANDOC		:= pandoc
+CLEANDIRS	:=
 CLEANFILES	 = $(ALL_TARGETS) .version
 
 # == Paths ==
@@ -79,11 +80,18 @@ distcheck:
 	@$(eval distversion != git describe --match='v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//')
 	@$(eval distname := imagewmark-$(distversion))
 	$(QECHO) MAKE $(distname).tar.zst
-	$Q test -n "$(distversion)" || (echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" ; false )
+	$Q test -n "$(distversion)" || { echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" >&2; false; }
 	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
-	$Q git archive -o $(distname).tar --prefix=$(distname)/ HEAD
-	$Q rm -f $(distname).tar.zst && zstd --ultra -22 --rm $(distname).tar && ls -lh $(distname).tar.zst
-	$Q T=`mktemp -d --tmpdir iwmtest-XXXXXX` && cd $$T && tar xvf $(abspath $(distname).tar.zst) \
+	$Q rm -r -f artifacts/ && mkdir -p artifacts/
+	$Q # Generate ChangeLog with ^^-prefixed records. Tab-indent commit bodies, kill whitespaces and multi-newlines
+	$Q git log --abbrev=13 --date=short --first-parent HEAD	\
+		--pretty='^^%ad  %an 	# %h%n%n%B%n'		>  artifacts/ChangeLog \
+	&& sed 's/^/	/; s/^	^^// ; s/[[:space:]]\+$$// '	-i artifacts/ChangeLog \
+	&& sed '/^\s*$$/{ N; /^\s*\n\s*$$/D }'			-i artifacts/ChangeLog
+	$Q # Generate and compress artifacts/*.tar.zst
+	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog -o artifacts/$(distname).tar HEAD
+	$Q zstd --ultra -22 --rm artifacts/$(distname).tar && ls -lh artifacts/$(distname).tar.zst
+	$Q T=`mktemp -d` && cd $$T && tar xf $(abspath artifacts/$(distname).tar.zst) \
 	&& cd $(distname) \
 	&& nice make all -j`nproc` \
 	&& make PREFIX=$$T/inst install \
@@ -92,11 +100,14 @@ distcheck:
 	&& make PREFIX=$$T/inst uninstall \
 	&& (set -x && $$PWD/imagewmark --version) \
 	&& cd / && rm -r "$$T"
-	$Q echo "Archive ready: $(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
+	$Q echo "Archive ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
+CLEANDIRS += artifacts/
+.PHONY: distcheck
 
 # == clean ==
 clean:
 	rm -f $(CLEANFILES)
+	rm -f -r $(CLEANDIRS)
 
 test:
 	$(MAKE) -C tests/ $@

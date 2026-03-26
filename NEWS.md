@@ -1,7 +1,62 @@
-## Imagewmark NEXT:
+## Imagewmark 0.6.0:
 
-### Breaking:
-* The default key for Watermark encoding has changed, it was previously unset
+### Added:
+* Documentation and example updates
+* Added `imagewmark.py add --py` option to force embedding via Python code
+* Reimplemented watermark embedding in C++
+* C++ based watermark embedding is significantly faster and uses less memory
+* Extended test suite results to include an averaged failure-rate
+* Added gamma and brightness-contrast to the default attacks
+* Implemented range-scaleto and aspect-crop attacks
+* Added support to customize attacks for test suite runs
+* Added cornersync / ACNF distinction to test suite results
+* Extended test suite construction to shuffle, filter and select image sets
+* Added support for --cornersync={on,off,auto} to reduce test cases
+* Added CLI11.hpp version 2.6.2 to 3rdparty sources
+* Added --without-original flag to test runner
+* Added peak normalization
+
+### Changed:
+* Made C++ based watermark embedding the default
+* Split imagewmark into a C++ based executable and a Python program
+* Made C++ based imagewmark the default executable to reduce startup time
+* Improved performance by moving more operations to OpenCV
+* Made all test suite decisions depend on a single seed
+* Strip metadata from converted images so test results are reproducible
+* Updated dependencies
+
+### Fixed:
+* Fixed issues where `.ppm` and `.tif` images were not recognized
+* Fixed sign preservation in the auto-convolution calculation
+* Fixed potential build issues from stale files
+* Fixed Make --test-key option work with integers again
+	https://github.com/tim-janik/imagewmark/issues/11
+* Fixed wmtool.py: Add "aspect‑resize:WxH" attack to improve j90randomsizej80
+	https://github.com/tim-janik/imagewmark/issues/10
+* Fixed tests/Makefile: properly use cornersync mode from Makefile variable
+	https://github.com/tim-janik/imagewmark/issues/9
+* Fixed tests/gen-tests-mk: fix random size aspect ratio generation
+	https://github.com/tim-janik/imagewmark/issues/8, #8
+* Fixed Enforce random aspect ratio in test suite
+	https://github.com/tim-janik/imagewmark/issues/6
+* Fixed gen-tests-mk: Makefile triggers /bin/bash: Argument list too long
+	https://github.com/tim-janik/imagewmark/issues/4
+* Fixed gen-tests-mk: support only running some attacks
+	https://github.com/tim-janik/imagewmark/issues/2
+
+### Removed:
+* Removed image comment watermarking (test) code
+* Removed outdated (debugging) comments
+
+### Contributors
+Thanks to everyone who gave feedback and to the
+contributors who made this release happen!
+
+* Tim Janik (@tim-janik)
+* Stefan Westerfeld (@swesterfeld)
+
+For full details, see the commit history:
+	https://github.com/tim-janik/imagewmark/compare/v0.5.0...v0.6.0
 
 
 ## Imagewmark 0.5.0:

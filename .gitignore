@@ -19,6 +19,7 @@ x*
 *.lib
 *.dll
 .version
+/artifacts/
 /BACKLOG.md
 /check*
 /imagewmark
