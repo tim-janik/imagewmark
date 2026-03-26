@@ -3,7 +3,7 @@
 #define __IMAGEWMARK_HH__
 
 #include "utils.hh"
-#include "CLI/CLI.hpp"
+#include "3rdparty/CLI11/CLI11.hpp"
 
 struct Image {
   String comment;

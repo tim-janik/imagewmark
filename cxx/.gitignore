@@ -6,4 +6,5 @@
 /*.map
 /cornersync
 /peaks2grid
-/CLI/
+/3rdparty/CLI11/
+!/3rdparty/CLI11/CLI11.hpp

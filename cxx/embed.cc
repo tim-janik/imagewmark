@@ -16,7 +16,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "CLI/CLI.hpp"
+#include "3rdparty/CLI11/CLI11.hpp"
 
 #include "imagewmark.hh"
 #include "utils.hh"

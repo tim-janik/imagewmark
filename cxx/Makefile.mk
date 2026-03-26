@@ -23,13 +23,12 @@ endif
 CLI11_VERSION	:= v2.6.2
 CLI11_URL	:= 'https://github.com/CLIUtils/CLI11/releases/download/$(CLI11_VERSION)/CLI11.hpp'
 CLI11_SHA256	:= 227a16fe5f9f8ada80c3c409492475536f597e7bd83a6c26eacc3c8c149a9295
-cxx/CLI/CLI.hpp:
-	$Q mkdir -p cxx/CLI/
+cxx/3rdparty/CLI11/CLI11.hpp:
+	$Q mkdir -p cxx/3rdparty/CLI11/
 	$Q wget -O $@.tmp $(CLI11_URL)
 	$Q echo "$(CLI11_SHA256)  $@.tmp" | sha256sum -c -
 	$Q mv $@.tmp $@
-CLEANFILES += cxx/CLI/CLI.hpp
-CXXDEPS += cxx/CLI/CLI.hpp
+CXXDEPS += cxx/3rdparty/CLI11/CLI11.hpp
 
 # == C++ Rules ==
 # == Implicit Rules ==
