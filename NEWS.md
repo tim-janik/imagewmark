@@ -36,7 +36,7 @@
 * Fixed tests/Makefile: properly use cornersync mode from Makefile variable
 	https://github.com/tim-janik/imagewmark/issues/9
 * Fixed tests/gen-tests-mk: fix random size aspect ratio generation
-	https://github.com/tim-janik/imagewmark/issues/8, #8
+	https://github.com/tim-janik/imagewmark/issues/8
 * Fixed Enforce random aspect ratio in test suite
 	https://github.com/tim-janik/imagewmark/issues/6
 * Fixed gen-tests-mk: Makefile triggers /bin/bash: Argument list too long
