@@ -458,7 +458,17 @@ command_add (const AddOptions &opt)
                    .crop (0, 0, Lwsmall * hreps, Lwsmall * vreps)
                    ;
     // Resize to the host size, see: common.py:zoom_image()
-    W = tiled.resize (ZOOM, VImage::option()->set ("vscale", ZOOM)->set ("kernel", VIPS_KERNEL_CUBIC));
+    // Use vips_affine with bicubic interpolator to match OpenCV's coordinate system.
+    const vips::VInterpolate interp = vips::VInterpolate::new_from_name ("bicubic");
+    W = tiled.affine ({ ZOOM, 0, 0, ZOOM },
+                      VImage::option()
+                      ->set ("interpolate", interp)
+                      ->set ("oarea", std::vector<int> {
+                          0, 0,
+                          int (tiled.width() * ZOOM),
+                          int (tiled.height() * ZOOM) }));
+    // The alternative tiled.resize() has a hardcoded centre-sampling offset that shifts peaks by ~1px.
+    // W = tiled.resize (ZOOM, VImage::option()->set ("vscale", ZOOM)->set ("kernel", VIPS_KERNEL_CUBIC));
 
     // Crop to exactly the host dimensions (centered)
     const int dy = (W.height() - host.height() + 1) / 2;
