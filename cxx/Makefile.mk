@@ -88,7 +88,7 @@ cxx/check: cxx/test-convcode-check
 check: cxx/check
 
 # == test add --py ==
-cxx/check-add--py-768:
+cxx/check-add--py-768: .version imagewmark cxx/peaks2grid cxx/cornersync
 	$Q echo '  CHECK   ' $@
 	$Q convert tests/example01.svg -resize 768 $@.png
 	$Q ./cxx/imagewmark add --py $@.png $@.wm.png $(src/watermark)
@@ -98,4 +98,16 @@ cxx/check-add--py-768:
 	$Q rm $@.png $@.wm.png $@.json
 	$Q echo '  OK      ' $@
 .PHONY: cxx/check-add--py-768
-cxx/check: cxx/check-add--py-768
+
+# == test add --cxx ==
+cxx/check-add--cxx-768: .version imagewmark cxx/peaks2grid cxx/cornersync
+	$Q echo '  CHECK   ' $@
+	$Q convert tests/example01.svg -resize 768 $@.png
+	$Q ./cxx/imagewmark add $@.png $@.wm.png $(src/watermark)
+	$Q ./imagewmark get $@.wm.png --json $@.json
+	$Q grep -qE '\b$(src/watermark)\b' $@.json || \
+		{ echo "$@.png: failed to detect watermark" >&2 ; false ; }
+	$Q rm $@.png $@.wm.png $@.json
+	$Q echo '  OK      ' $@
+.PHONY: cxx/check-add--cxx-768
+cxx/check: cxx/check-add--py-768 cxx/check-add--cxx-768
