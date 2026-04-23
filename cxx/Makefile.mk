@@ -19,6 +19,13 @@ ifeq ($(cxx/opencv4.cflags)$(cxx/opencv4.libs),)
 $(error Failed to find OpenCV4 (opencv4.pc) via pkg-config)
 endif
 
+# == libvips ==
+cxx/libvips.cflags != pkg-config --cflags vips-cpp
+cxx/libvips.libs   != pkg-config --libs vips-cpp
+ifeq ($(cxx/libvips.cflags)$(cxx/libvips.libs),)
+$(error Failed to find libvips C++ bindings (vips-cpp.pc) via pkg-config)
+endif
+
 # == libcli11-dev ==
 CLI11_VERSION	:= v2.6.2
 CLI11_URL	:= 'https://github.com/CLIUtils/CLI11/releases/download/$(CLI11_VERSION)/CLI11.hpp'
@@ -42,9 +49,9 @@ CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 # == cxx/imagewmark (add only) ==
 cxx/imagewmark.sources := cxx/imagewmark-add.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/embed.cc
 cxx/imagewmark.objects := $(cxx/imagewmark.sources:.cc=.o)
-cxx/imagewmark.LIBS    := $(cxx/opencv4.libs)
+cxx/imagewmark.LIBS    := $(cxx/libvips.libs)
 $(cxx/imagewmark.objects): $(CXXDEPS)
-cxx/embed.cc.FLAGS     := $(cxx/opencv4.cflags)
+cxx/embed.cc.FLAGS     := $(cxx/libvips.cflags)
 cxx/imagewmark: $(cxx/imagewmark.objects)
 	$(QGEN)
 	$Q $(LINK) $(cxx/imagewmark.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
