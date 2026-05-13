@@ -355,6 +355,25 @@ save_host_image (const VImage &img, const std::string &path)
 
   // TODO: preserve number of input image channels
   // TODO: preserve bit depth (8bpp, 16bpp) when writing
+
+  // Check if the output is a PNG (case-insensitive)
+  std::string out_lower = path;
+  std::transform (out_lower.begin(), out_lower.end(), out_lower.begin(), ::tolower);
+  if (out_lower.length() >= 4 && out_lower.substr (out_lower.length() - 4) == ".png") {
+    // 0 = no compression (fastest, huge file)
+    // 1 = minimum compression, better than OpenCV which forces Z_RLE level=0
+    // 3 = fast, reasonable size
+    // 6 = libvips default (slow, small size)
+    // 9 = maximum, slowest
+    save_opts->set ("compression", 1);
+    // Allow adaptive encoding to improve compression
+    save_opts->set ("filter", VIPS_FOREIGN_PNG_FILTER_ALL);
+    save_opts->set ("effort", 1);
+    // Interlaced saving is very slow
+    save_opts->set ("interlace", 0);
+    // Avoid palette dithering and quantization
+    save_opts->set ("palette", 0);
+  }
   img.write_to_file (path.c_str(), save_opts);
 }
 
