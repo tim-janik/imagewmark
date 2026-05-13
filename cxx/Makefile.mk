@@ -19,6 +19,13 @@ ifeq ($(cxx/opencv4.cflags)$(cxx/opencv4.libs),)
 $(error Failed to find OpenCV4 (opencv4.pc) via pkg-config)
 endif
 
+# == libvips ==
+cxx/libvips.cflags != pkg-config --cflags vips-cpp
+cxx/libvips.libs   != pkg-config --libs vips-cpp
+ifeq ($(cxx/libvips.cflags)$(cxx/libvips.libs),)
+$(error Failed to find libvips C++ bindings (vips-cpp.pc) via pkg-config)
+endif
+
 # == libcli11-dev ==
 CLI11_VERSION	:= v2.6.2
 CLI11_URL	:= 'https://github.com/CLIUtils/CLI11/releases/download/$(CLI11_VERSION)/CLI11.hpp'
@@ -42,9 +49,9 @@ CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 # == cxx/imagewmark (add only) ==
 cxx/imagewmark.sources := cxx/imagewmark-add.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/embed.cc
 cxx/imagewmark.objects := $(cxx/imagewmark.sources:.cc=.o)
-cxx/imagewmark.LIBS    := $(cxx/opencv4.libs)
+cxx/imagewmark.LIBS    := $(cxx/libvips.libs)
 $(cxx/imagewmark.objects): $(CXXDEPS)
-cxx/embed.cc.FLAGS     := $(cxx/opencv4.cflags)
+cxx/embed.cc.FLAGS     := $(cxx/libvips.cflags)
 cxx/imagewmark: $(cxx/imagewmark.objects)
 	$(QGEN)
 	$Q $(LINK) $(cxx/imagewmark.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
@@ -88,7 +95,7 @@ cxx/check: cxx/test-convcode-check
 check: cxx/check
 
 # == test add --py ==
-cxx/check-add--py-768:
+cxx/check-add--py-768: .version imagewmark cxx/peaks2grid cxx/cornersync
 	$Q echo '  CHECK   ' $@
 	$Q convert tests/example01.svg -resize 768 $@.png
 	$Q ./cxx/imagewmark add --py $@.png $@.wm.png $(src/watermark)
@@ -98,4 +105,16 @@ cxx/check-add--py-768:
 	$Q rm $@.png $@.wm.png $@.json
 	$Q echo '  OK      ' $@
 .PHONY: cxx/check-add--py-768
-cxx/check: cxx/check-add--py-768
+
+# == test add --cxx ==
+cxx/check-add--cxx-768: .version imagewmark cxx/peaks2grid cxx/cornersync
+	$Q echo '  CHECK   ' $@
+	$Q convert tests/example01.svg -resize 768 $@.png
+	$Q ./cxx/imagewmark add $@.png $@.wm.png $(src/watermark)
+	$Q ./imagewmark get $@.wm.png --json $@.json
+	$Q grep -qE '\b$(src/watermark)\b' $@.json || \
+		{ echo "$@.png: failed to detect watermark" >&2 ; false ; }
+	$Q rm $@.png $@.wm.png $@.json
+	$Q echo '  OK      ' $@
+.PHONY: cxx/check-add--cxx-768
+cxx/check: cxx/check-add--py-768 cxx/check-add--cxx-768
