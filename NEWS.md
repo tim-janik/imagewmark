@@ -1,3 +1,12 @@
+## Imagewmark NEXT:
+
+### Changed:
+* Replaced OpenCV with libvips for the C++ watermark embedding pipeline
+* Moved to affine transform with bicubic interpolation for image resizing
+* Optimized PNG compression options when saving embedded images
+* Updated build dependencies to require libvips-dev instead of libopencv-dev
+
+
 ## Imagewmark 0.6.0:
 
 ### Added:
