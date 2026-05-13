@@ -10,7 +10,7 @@ RUN \
   apk update
 
 RUN \
-  apk add --no-cache sudo git alpine-sdk sed bash openimageio-dev opencv-dev imagemagick ghostscript-fonts rsvg-convert \
+  apk add --no-cache sudo git alpine-sdk sed bash openimageio-dev opencv-dev vips-dev imagemagick ghostscript-fonts rsvg-convert \
   pandoc build-base libffi-dev openblas-dev freetype-dev libpng-dev jpeg-dev tiff-dev lcms2-dev \
   python3-dev py3-opencv py3-numpy py3-scipy py3-matplotlib py3-pip py3-wheel py3-numpy py3-scipy
 CMD ["/bin/bash"]
