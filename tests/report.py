@@ -8,23 +8,18 @@ import math
 # == GLOBALS & OPTIONS ==
 EXPECTED_WM = None
 ATTACKS = None
-FLAT = None
 def parse_args():
   # Parse args
-  FLAT = False
   EXPECTED_WM = None
   i = 1
   while i < len (sys.argv):
-    if sys.argv[i] == "--flat" or sys.argv[i] == "--flat2":
-      FLAT = True
-    else:
-      EXPECTED_WM = (sys.argv[i] * 32)[0:32].lower()
-      # print ("expected_wm:", expected_wm, file = sys.stderr)
+    EXPECTED_WM = (sys.argv[i] * 32)[0:32].lower()
+    # print ("expected_wm:", expected_wm, file = sys.stderr)
     i += 1
   if not EXPECTED_WM:
-    print ("usage: report.py [--flat] <payload>", file = sys.stderr)
+    print ("usage: report.py <payload>", file = sys.stderr)
     sys.exit (1)
-  return EXPECTED_WM, FLAT
+  return EXPECTED_WM
 
 
 def eprint (*args, **kwargs):
@@ -74,14 +69,6 @@ def categorize_detections (jsonfiles):
   n_results = len (cs_matching) + len (acnf_matching) + len (aligned) + len (failed)
   assert len (jsonfiles) == n_results
   return acnf_matching, cs_matching, aligned, failed
-
-# List OK/FAIL with JSD, suitable as input for diff and awk
-def generate_flat_report (n_input_files, acnf_matching, cs_matching, aligned, failed):
-  for attackdir in ATTACKS:
-    assert n_input_files == len (acnf_matching[attackdir]) + len (cs_matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir])
-    for jo in failed[attackdir]:
-      print (jo['filename'])
-  return
 
 # Attack Statistics
 def generate_attack_statistics (n_input_files, acnf_matching, cs_matching, aligned, failed):
@@ -170,8 +157,8 @@ def generate_timings (acnf_matching, cs_matching, aligned, failed):
 
 def main():
   # Parse args and attack types
-  global EXPECTED_WM, ATTACKS, FLAT
-  EXPECTED_WM, FLAT = parse_args()
+  global EXPECTED_WM, ATTACKS
+  EXPECTED_WM = parse_args()
   ATTACKS = sorted (list_subdirs ('attack/'))
   assert EXPECTED_WM and ATTACKS
   # Read inputs and attacks
@@ -192,11 +179,8 @@ def main():
     assert len (acnf_matching[attackdir]) + len (cs_matching[attackdir]) + len (aligned[attackdir]) + len (failed[attackdir]) == n_input_files
 
   # Report generation
-  if FLAT:
-    generate_flat_report (n_input_files, acnf_matching, cs_matching, aligned, failed)
-  else:
-    generate_attack_statistics (n_input_files, acnf_matching, cs_matching, aligned, failed)
-    print ("\n---\n")
-    generate_timings (acnf_matching, cs_matching, aligned, failed)
+  generate_attack_statistics (n_input_files, acnf_matching, cs_matching, aligned, failed)
+  print ("\n---\n")
+  generate_timings (acnf_matching, cs_matching, aligned, failed)
 
 main()

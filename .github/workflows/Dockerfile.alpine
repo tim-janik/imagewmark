@@ -9,16 +9,13 @@ FROM alpine:latest
 RUN \
   apk update
 
-RUN \
-  apk add --no-cache sudo git alpine-sdk sed bash openimageio-dev opencv-dev imagemagick ghostscript-fonts rsvg-convert \
-  pandoc build-base libffi-dev openblas-dev freetype-dev libpng-dev jpeg-dev tiff-dev lcms2-dev \
-  python3-dev py3-opencv py3-numpy py3-scipy py3-matplotlib py3-pip py3-wheel py3-numpy py3-scipy
+RUN : \
+  && apk add --no-cache sudo git alpine-sdk sed bash openimageio-dev opencv-dev vips-dev imagemagick ghostscript-fonts rsvg-convert \
+	 pandoc build-base libffi-dev openblas-dev freetype-dev libpng-dev jpeg-dev tiff-dev lcms2-dev jq \
+	 python3-dev py3-opencv py3-numpy py3-scipy py3-matplotlib py3-pip py3-wheel py3-numpy py3-scipy \
+  && apk cache clean && apk cache purge \
+  && pip install --no-cache-dir --break-system-packages scikit-image
 CMD ["/bin/bash"]
-
-RUN \
-  time pip install --no-cache-dir --break-system-packages scikit-image
-RUN \
-  apk cache clean && apk cache purge
 
 # Support 1000:1000 for normal developer setups, and for
 # Github CI support runner:runner, both with sudo enabled
