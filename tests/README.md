@@ -1,7 +1,8 @@
 ﻿# IMAGEWMARK - TESTS
 
 The scripts in the tests/ subdirectory allow to run Imagewmark on a collection
-of images with a variety of attacks and generate a report at the end.
+of images with a variety of attacks and generate a report (`report.pdf`) and
+a plain-text results file (`results.txt`) at the end.
 
 Introduction to the scripts and commands:
 - ber-test.sh: Developer tool for error rate testing
@@ -27,3 +28,15 @@ time nice make -C /tmp/iwmtest/ -j`nproc`
 xdg-open /tmp/iwmtest/report.pdf
 ```
 
+## Inspecting results.txt
+
+The `results.txt` file lists every extraction result with the filename, highest
+JSD score, and matched bits. Lines with a numeric JSD value indicate a (possibly
+weak) watermark detection, verify the `bits` member for correctness.
+Lines without a numeric JSD indicate synchronization failures.
+
+Filter or count successes and failures:
+```sh
+grep -cP 'jsd=\d' results.txt		# successful
+grep -cP -v 'jsd=\d' results.txt	# failed
+```
