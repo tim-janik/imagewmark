@@ -193,16 +193,6 @@ results.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	) > $@.tmp
 	$Q mv $@.tmp $@
 RESULT_REPORTS += results.txt
-flat.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
-	$(QGEN)
-	$Q $(SRCDIR)/tests/report.py --flat $(WATERMARK) >> $@.tmp
-	$Q mv $@.tmp $@
-RESULT_REPORTS += flat.txt
-fails.txt: flat.txt
-	$(QGEN)
-	$Q fgrep -v ' OK' flat.txt > $@.tmp || :
-	$Q mv $@.tmp $@
-RESULT_REPORTS += fails.txt
 all: $(RESULT_REPORTS)
 	$(file > EXTRACT_FILES.lst, $(EXTRACT_FILES))
 	$(QGEN)
