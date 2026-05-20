@@ -1,10 +1,17 @@
 ## Imagewmark NEXT:
 
+### Added:
+* Added `results.txt` generation to test suite, listing best JSD scores per extraction
+
 ### Changed:
 * Replaced OpenCV with libvips for the C++ watermark embedding pipeline
 * Moved to affine transform with bicubic interpolation for image resizing
 * Optimized PNG compression options when saving embedded images
 * Updated build dependencies to require libvips-dev instead of libopencv-dev
+
+### Removed:
+* Removed `--flat` option and flat report generation from test suite, use `results.txt`
+* Removed `flat.txt` and `fails.txt` report generation from test Makefile
 
 
 ## Imagewmark 0.6.0:
