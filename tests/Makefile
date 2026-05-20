@@ -185,6 +185,14 @@ report.md: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$Q $(SRCDIR)/tests/report.py $(WATERMARK) >$@.tmp
 	$Q mv $@.tmp $@
 RESULT_REPORTS += report.md report.html report.pdf
+results.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
+	$(QGEN)
+	@ # Print filename, highest jsd, and the bits from the match with the highest jsd
+	$Q ( find ./ -name '*.json' -print0 | \
+		xargs -0 -P `nproc` -n 1 jq -r -e '(.matches | max_by(.jsd)) as $$best | "\(.filename) jsd=\($$best.jsd) bits=\($$best.bits)"' \
+	) > $@.tmp
+	$Q mv $@.tmp $@
+RESULT_REPORTS += results.txt
 flat.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
 	$Q $(SRCDIR)/tests/report.py --flat $(WATERMARK) >> $@.tmp
