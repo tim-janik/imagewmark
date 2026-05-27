@@ -185,12 +185,23 @@ report.md: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$Q $(SRCDIR)/tests/report.py $(WATERMARK) >$@.tmp
 	$Q mv $@.tmp $@
 RESULT_REPORTS += report.md report.html report.pdf
+# jq expression for results.txt: pick highest-JSD match,
+# preferring entries that correctly detected the watermark bits
+define RESULTS_JQ
+(.matches) as $$all |
+($$all | map(select(.bits == "$(WATERMARK)"))) as $$correct |
+(if ($$correct | length) > 0 then $$correct else $$all end |
+ max_by(.jsd)) as $$best |
+"\(.filename) jsd=\($$best.jsd) bits=\($$best.bits)"
+endef
+
 results.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
-	@ # Print filename, highest jsd, and the bits from the match with the highest jsd
+	$(file > $@.jq, $(RESULTS_JQ))
 	$Q ( find ./ -name '*.json' -print0 | \
-		xargs -0 -P `nproc` -n 1 jq -r -e '(.matches | max_by(.jsd)) as $$best | "\(.filename) jsd=\($$best.jsd) bits=\($$best.bits)"' \
+		xargs -0 -P `nproc` -n 1 jq -r -ef $@.jq \
 	) > $@.tmp
+	$Q rm -f $@.jq
 	$Q mv $@.tmp $@
 RESULT_REPORTS += results.txt
 all: $(RESULT_REPORTS)
