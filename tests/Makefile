@@ -26,7 +26,7 @@ help:
 	@echo 'Make targets:'
 	@echo '  all			- Collect input images, create attack images, extract watermarks'
 	@echo '  attacks		- Collect input images, create attack images'
-	@echo '  clean			- Remove all images and reports'
+	@echo '  clean			- Remove all watermarked images and reports'
 	@echo 'Invocation:'
 	@echo '  make V=1		- Enable verbose output from MAKE and subcommands'
 	@echo '  make IMAGEDIR=..	- Specifc directory with images for testing'
@@ -221,11 +221,12 @@ test: all
 .PHONY: test
 
 # == clean ==
+clean-wmarked:
+	rm -rf wmarked/
 clean-attack:
-	rm -rf ../tests/attack/
+	rm -rf attack/
 clean-extract:
-	rm -rf ../tests/extract/
+	rm -rf extract/
 clean-reports:
 	rm -f *.tmp *.svg $(RESULT_REPORTS) report.md
-clean: clean-attack clean-extract clean-reports
-	rm -rf ../tests/wmarked/ ../tests/inputs/
+clean: clean-wmarked clean-attack clean-extract clean-reports
