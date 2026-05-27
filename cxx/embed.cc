@@ -521,6 +521,10 @@ imagewmark_add (const AddOptions &options)
   std::atexit (vips_shutdown);
   add_config.prng_wm_pattern = new Random (0, Random::Stream::wm_pattern);
   add_config.prng_wm_mask = new Random (0, Random::Stream::wm_mask);
-  command_add (options);
+  try {
+    command_add (options);
+  } catch (const VError &e) {
+    die (1, "%s", e.what());
+  }
   return 0;
 }
