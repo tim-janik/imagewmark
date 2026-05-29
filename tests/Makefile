@@ -26,7 +26,7 @@ help:
 	@echo 'Make targets:'
 	@echo '  all			- Collect input images, create attack images, extract watermarks'
 	@echo '  attacks		- Collect input images, create attack images'
-	@echo '  clean			- Remove all images and reports'
+	@echo '  clean			- Remove all watermarked images and reports'
 	@echo 'Invocation:'
 	@echo '  make V=1		- Enable verbose output from MAKE and subcommands'
 	@echo '  make IMAGEDIR=..	- Specifc directory with images for testing'
@@ -185,12 +185,23 @@ report.md: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$Q $(SRCDIR)/tests/report.py $(WATERMARK) >$@.tmp
 	$Q mv $@.tmp $@
 RESULT_REPORTS += report.md report.html report.pdf
+# jq expression for results.txt: pick highest-JSD match,
+# preferring entries that correctly detected the watermark bits
+define RESULTS_JQ
+(.matches) as $$all |
+($$all | map(select(.bits == "$(WATERMARK)"))) as $$correct |
+(if ($$correct | length) > 0 then $$correct else $$all end |
+ max_by(.jsd)) as $$best |
+"\(.filename) jsd=\($$best.jsd) bits=\($$best.bits)"
+endef
+
 results.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
 	$(QGEN)
-	@ # Print filename, highest jsd, and the bits from the match with the highest jsd
+	$(file > $@.jq, $(RESULTS_JQ))
 	$Q ( find ./ -name '*.json' -print0 | \
-		xargs -0 -P `nproc` -n 1 jq -r -e '(.matches | max_by(.jsd)) as $$best | "\(.filename) jsd=\($$best.jsd) bits=\($$best.bits)"' \
+		xargs -0 -P `nproc` -n 1 jq -r -ef $@.jq \
 	) > $@.tmp
+	$Q rm -f $@.jq
 	$Q mv $@.tmp $@
 RESULT_REPORTS += results.txt
 all: $(RESULT_REPORTS)
@@ -210,11 +221,12 @@ test: all
 .PHONY: test
 
 # == clean ==
+clean-wmarked:
+	rm -rf wmarked/
 clean-attack:
-	rm -rf ../tests/attack/
+	rm -rf attack/
 clean-extract:
-	rm -rf ../tests/extract/
+	rm -rf extract/
 clean-reports:
 	rm -f *.tmp *.svg $(RESULT_REPORTS) report.md
-clean: clean-attack clean-extract clean-reports
-	rm -rf ../tests/wmarked/ ../tests/inputs/
+clean: clean-wmarked clean-attack clean-extract clean-reports
