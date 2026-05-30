@@ -524,7 +524,7 @@ imagewmark_add (const AddOptions &options)
   try {
     command_add (options);
   } catch (const VError &e) {
-    die (1, "%s", e.what());
+    die (1, "%s: error processing %s:\n  %s", options.output_img.c_str(), options.input_img.c_str(), string_reindent (e.what()).c_str());
   }
   return 0;
 }
