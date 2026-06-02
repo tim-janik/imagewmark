@@ -9,6 +9,7 @@ IMAGEWMARK	:= ../../imagewmark
 IMAGEWMARK_ADD	:= $(IMAGEWMARK) add
 EXTRACT_META	:= ../../tests/metadata/extract-metadata.sh
 FILTER_META	:= ../../tests/metadata/filter-metadata.sh
+MDIFF_SUMMARY	:= ../../tests/metadata/mdiff-summary.sh
 WATERMARK	:= 00001234
 MAKEFILE_DEP	:= Makefile
 
@@ -75,13 +76,19 @@ $(foreach I,$(IMAGE_FILES),$(eval \
   $I.mdiff : $(call add.wm,$I).fdata $I.fdata $(MAKEFILE_DEP) ; $(QGEN) $$@ && git diff --no-index -U0 $I.fdata $$< > $$@.tmp ; mv $$@.tmp $$@ \
 ))
 
-GENERATED_FILES = $(WM_FILES) $(MDATA_FILES) $(MDIFF_FILES)
+## Summarize interesting metadata changes across all .mdiff files
+## (filters out size, filename, timestamps, permissions, etc.)
+mdiff-summary:
+	$Q bash $(MDIFF_SUMMARY) $$(find . -name '*.mdiff' -not -name '.wm.*')
+$(MDIFF_SUMMARY) : $(MAKEFILE_DEP)
+
 ## Remove generated files: .wm .mdata .mdiff
 ## as well as temporary files
 clean: clean-tmp
 	rm -f $(GENERATED_FILES)
 clean-tmp:
 	rm -f $(GENERATED_FILES:=.tmp)
+GENERATED_FILES = $(WM_FILES) $(MDATA_FILES) $(FDATA_FILES) $(MDIFF_FILES)
 
 ## show this help
 help:
