@@ -69,6 +69,15 @@ clean: clean-tmp
 clean-tmp:
 	rm -f $(GENERATED_FILES:=.tmp)
 
+## show this help
+help:
+	$Q TTY=1; test -t 1 || TTY=; \
+	   awk -v tty="$$TTY" \
+		'BEGIN { ci=tty?"\033[36m":""; cr=tty?"\033[0m":"" } \
+		/^## / { c = c (c ? "\n             " : "") substr($$0, 4); next; } \
+		{ if (/^[a-zA-Z_-]+:/ && c) { split($$1,t,/:/); printf "%s%-12s%s %s\n",ci,t[1],cr,c; }; c=""; }' \
+		$(MAKEFILE_LIST)
+
 
 ## Default target
 all: input_check $(MDIFF_FILES)
