@@ -8,6 +8,7 @@ TTY		!= test ! -t 1 || echo 1
 IMAGEWMARK	:= ../../imagewmark
 IMAGEWMARK_ADD	:= $(IMAGEWMARK) add
 EXTRACT_META	:= ../../tests/metadata/extract-metadata.sh
+FILTER_META	:= ../../tests/metadata/filter-metadata.sh
 WATERMARK	:= 00001234
 MAKEFILE_DEP	:= Makefile
 
@@ -53,12 +54,19 @@ MDATA_FILES := $(IMAGE_FILES:%=%.mdata) $(WM_FILES:%=%.mdata)
 	$Q $(EXTRACT_META) $< > $@.tmp && mv $@.tmp $@
 $(MDATA_FILES) : $(EXTRACT_META) $(MAKEFILE_DEP)
 
+# Transform path/file.mdata -> path/file.fdata (filtered metadata)
+FDATA_FILES := $(IMAGE_FILES:%=%.fdata) $(WM_FILES:%=%.fdata)
+%.fdata: %.mdata
+	$(QGEN)
+	$Q $(FILTER_META) $< > $@.tmp && mv $@.tmp $@
+$(FDATA_FILES) : $(FILTER_META) $(MAKEFILE_DEP)
+
 # Transform path/image.ext -> path/image.ext.mdiff - show metadata differences
 MDIFF_FILES := $(IMAGE_FILES:%=%.mdiff)
 ls.mdiff: ; printf '%s\n' $(MDIFF_FILES)
-# image.ext.mdiff: img.ext.mdata img.wm.ext.mdata
+# image.ext.mdiff: img.ext.fdata img.wm.ext.fdata
 $(foreach I,$(IMAGE_FILES),$(eval \
-  $I.mdiff : $(call add.wm,$I).mdata $I.mdata $(MAKEFILE_DEP) ; $(QGEN) $$@ && diff -U0 $I.mdata $$< > $$@.tmp ; mv $$@.tmp $$@ \
+  $I.mdiff : $(call add.wm,$I).fdata $I.fdata $(MAKEFILE_DEP) ; $(QGEN) $$@ && diff -U0 $I.fdata $$< > $$@.tmp ; mv $$@.tmp $$@ \
 ))
 
 GENERATED_FILES = $(WM_FILES) $(MDATA_FILES) $(MDIFF_FILES)
