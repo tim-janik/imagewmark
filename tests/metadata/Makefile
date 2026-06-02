@@ -61,6 +61,14 @@ $(foreach I,$(IMAGE_FILES),$(eval \
   $I.mdiff : $(call add.wm,$I).mdata $I.mdata $(MAKEFILE_DEP) ; $(QGEN) $$@ && diff -U0 $I.mdata $$< > $$@.tmp ; mv $$@.tmp $$@ \
 ))
 
+GENERATED_FILES = $(WM_FILES) $(MDATA_FILES) $(MDIFF_FILES)
+## Remove generated files: .wm .mdata .mdiff
+## as well as temporary files
+clean: clean-tmp
+	rm -f $(GENERATED_FILES)
+clean-tmp:
+	rm -f $(GENERATED_FILES:=.tmp)
+
 
 ## Default target
 all: input_check $(MDIFF_FILES)
