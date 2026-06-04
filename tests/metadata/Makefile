@@ -16,15 +16,20 @@ MAKEFILE_DEP	:= Makefile
 # Recursively find globs and list shell-quoted file names
 globstar = $(shell /bin/bash --norc -O globstar -O nullglob -c 'files=($(1:%=**/%)); test $${#files[@]} -le 0 || printf "%q\n" "$${files[@]}"')
 
-## Fetch the exif-samples image set via git clone
+## Fetch the exif-samples image set via git clone, plus PNG/WebP/GIF from metadata-extractor-images
 examples:
-	rm -rf exif-samples/
+	rm -rf exif-samples/ alt-examples/
 	git clone --depth 1 https://github.com/ianare/exif-samples.git
 	rm -f exif-samples/jpg/corrupted.jpg
 	mv exif-samples/jpg/WWL_\(Polaroid\)_ION230.jpg exif-samples/jpg/WWL_.Polaroid._ION230.jpg
+	mkdir -p alt-examples/
+	curl -sLo alt-examples/sampleWithExifData.png 'https://github.com/drewnoakes/metadata-extractor-images/raw/main/png/sampleWithExifData.png'
+	curl -sLo alt-examples/Nikon_D1X.webp 'https://github.com/drewnoakes/metadata-extractor-images/raw/main/webp/Nikon%20D1X.webp'
+	curl -sLo alt-examples/Issue_201.gif 'https://github.com/drewnoakes/metadata-extractor-images/raw/main/gif/Issue%20201.gif'
+	curl -sLo alt-examples/Issue_649.avif 'https://github.com/drewnoakes/metadata-extractor-images/raw/main/avif/Issue%20649.avif'
 
 # Collect image files of interest, except .wm. files - we create those
-IMAGE_FILES := $(call globstar, *.jpeg *.jpg *.tiff) # *.heif *.HEIC
+IMAGE_FILES := $(call globstar, *.jpeg *.jpg *.tiff *.png *.webp *.gif *.avif) # *.heif *.HEIC
 IMAGE_FILES := $(foreach f,$(IMAGE_FILES),$(if $(findstring .wm.,$(f)),,$(f)))
 ## List all input images
 ls:
