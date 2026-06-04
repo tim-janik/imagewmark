@@ -3,6 +3,11 @@
 #
 # Extract every available metadata field from image files using various metadata extractors.
 #
+# Prerequisites (Debian/Ubuntu):
+#   sudo apt install libimage-exiftool-perl exiv2 imagemagick libvips-tools \
+#     jhead jpeginfo pngcheck libtiff-tools webp libheif-examples \
+#     ffmpeg mediainfo netpbm giflib-tools
+#
 # Usage: extract-metadata.sh <image> [image2...]
 #        find images/ -type f | xargs extract-metadata.sh
 set -euo pipefail
