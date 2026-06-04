@@ -35,12 +35,13 @@ for filepath in "$@"; do
   file_fmt=$(file -bLi "$filepath" | sed 's/.*mime=//; s/;.*//')
 
   # -- exiftool (comprehensive EXIF/IPTC/XMP/metadata) --
-  subsection "ExifTool (full)"
-  run exiftool "$filepath"
+  subsection "ExifTool"
+  run exiftool "$filepath" | grep -v '(Binary data'
 
-  # -- exiv2 (EXIF/IPTC/XMP) --
-  subsection "Exiv2 (summary)"
-  run exiv2 -pa "$filepath"
+  # -- exiv2 (EXIF/IPTC/XMP, all in one call) --
+  subsection "Exiv2"
+  # Skip Undefined-type fields with many value tokens (binary blobs like MakerNote raw dumps)
+  run exiv2 -pa "$filepath" | awk '$2 != "Undefined" || NF <= 8'
 
   # -- ImageMagick identify --
   subsection "ImageMagick identify (verbose)"
@@ -87,11 +88,8 @@ for filepath in "$@"; do
   run_if heic heif-info "$filepath"
 
   # -- ffprobe (container + codec metadata) --
-  subsection "ffprobe (streams)"
+  subsection "ffprobe"
   run ffprobe -v quiet -show_streams "$filepath"
-
-  subsection "ffprobe (format)"
-  run ffprobe -v quiet -show_format "$filepath"
 
   # -- mediainfo --
   subsection "MediaInfo"
