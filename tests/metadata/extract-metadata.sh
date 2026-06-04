@@ -6,7 +6,7 @@
 # Prerequisites (Debian/Ubuntu):
 #   sudo apt install libimage-exiftool-perl exiv2 imagemagick libvips-tools \
 #     jhead jpeginfo pngcheck libtiff-tools webp libheif-examples \
-#     ffmpeg mediainfo netpbm giflib-tools
+#     ffmpeg mediainfo netpbm giflib-tools libavif-bin libjxl-tools
 #
 # Usage: extract-metadata.sh <image> [image2...]
 #        find images/ -type f | xargs extract-metadata.sh
@@ -81,6 +81,14 @@ for filepath in "$@"; do
   # -- webpinfo (WebP structure) --
   subsection "webpinfo (WebP chunk structure)"
   run_if webp webpinfo "$filepath"
+
+  # -- avifdec (AVIF structure) --
+  subsection "avifdec (AVIF info)"
+  run_if avif avifdec --info "$filepath"
+
+  # -- jxlinfo (JPEG XL structure) --
+  subsection "jxlinfo (JPEG XL codestream info)"
+  run_if jxl jxlinfo "$filepath"
 
   # -- heif-info (HEIF/HEIC info) --
   subsection "heif-info (HEIF/HEIC structure)"
