@@ -51,6 +51,31 @@ for filepath in "$@"; do
   subsection "vipsheader (with metadata)"
   run vipsheader --vips "$filepath"
 
+  # -- Pillow (color management + parser-specific metadata) --
+  subsection "Pillow"
+  run python3 -c '
+import sys
+from PIL import Image
+try:
+    img = Image.open(sys.argv[1])
+    info = {k: str(v) for k, v in img.info.items() if not isinstance(v, bytes)}
+    exif = img.getexif()
+    tags = {str(k): str(v) for k, v in exif.items()}
+    print(f"mode: {img.mode}")
+    print(f"dimensions: {img.size}")
+    print(f"format: {img.format}")
+    if info:
+        print("info:")
+        for k, v in sorted(info.items()):
+            print(f"  {k}: {v}")
+    if tags:
+        print("exif:")
+        for k, v in sorted(tags.items()):
+            print(f"  {k}: {v}")
+except Exception as e:
+    pass # print(f"Pillow error: {e}", file=sys.stderr)
+' "$filepath"
+
   # -- jhead (JPEG EXIF) --
   subsection "jhead (JPEG EXIF/IPTC)"
   run_if jpeg jhead "$filepath"
