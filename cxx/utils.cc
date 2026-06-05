@@ -127,6 +127,18 @@ string_printf (const char *format, ...)
   return result;
 }
 
+String
+string_reindent (const std::string &s)
+{
+  String result;
+  for (const char c : s) {
+    result += c;
+    if (c == '\n')
+      result += "  ";
+  }
+  return result;
+}
+
 void
 die (int code, const char *format, ...)
 {

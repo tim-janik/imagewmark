@@ -34,6 +34,9 @@ bool string_endswith (const String &string, const String &fragment);
 /// Construct std::string in printf()-manner using the "C" locale.
 String  string_printf (const char *format, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
 
+/// Indent continuation lines of a multiline string.
+String string_reindent (const std::string &s);
+
 /// Exit the program with a message.
 void die (int code, const char *format, ...) __attribute__ ((noreturn, __format__ (__printf__, 2, 3)));
 
