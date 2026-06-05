@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
+#
+# Extract every available metadata field from image files using various metadata extractors.
+#
+# Prerequisites (Debian/Ubuntu):
+#   sudo apt install libimage-exiftool-perl exiv2 imagemagick libvips-tools \
+#     jhead jpeginfo pngcheck libtiff-tools webp libheif-examples \
+#     ffmpeg mediainfo netpbm giflib-tools libavif-bin libjxl-tools
+#
+# Usage: extract-metadata.sh <image> [image2...]
+#        find images/ -type f | xargs extract-metadata.sh
+set -euo pipefail
+
+# -- helpers --
+die() { echo "ERROR: $*" >&2; exit 1; }
+section() { echo; echo "================================================================"; echo "  $1"; echo "================================================================"; }
+subsection() { echo; echo "--- $1 ---"; }
+run() { "$@" 2>&1 || true; }
+run_if() { local fmt="$1"; shift; [[ "${file_fmt,,}" == *"${fmt,,}"* ]] && "$@" 2>&1 || true; }
+
+[ $# -eq 0 ] && die "usage: $0 <image> [image2 ...]"
+
+for filepath in "$@"; do
+  [ -f "$filepath" ] || die "not a file: $filepath"
+
+  section "FILE: $filepath"
+
+  # -- file type detection --
+  subsection "File type"
+  file -bL "$filepath"
+  file -bL --mime "$filepath"
+
+  # -- detect format for conditional tools --
+  file_fmt=$(file -bLi "$filepath" | sed 's/.*mime=//; s/;.*//')
+
+  # -- exiftool (comprehensive EXIF/IPTC/XMP/metadata) --
+  subsection "ExifTool"
+  run exiftool "$filepath" | grep -v '(Binary data'
+
+  # -- exiv2 (EXIF/IPTC/XMP, all in one call) --
+  subsection "Exiv2"
+  # Skip Undefined-type fields with many value tokens (binary blobs like MakerNote raw dumps)
+  run exiv2 -pa "$filepath" | awk '$2 != "Undefined" || NF <= 8'
+
+  # -- ImageMagick identify --
+  subsection "ImageMagick identify (verbose)"
+  run identify -verbose "$filepath"
+
+  # -- vipsheader --
+  subsection "vipsheader (with metadata)"
+  run vipsheader --vips "$filepath"
+
+  # -- Pillow (color management + parser-specific metadata) --
+  subsection "Pillow"
+  run python3 -c '
+import sys
+from PIL import Image
+try:
+    img = Image.open(sys.argv[1])
+    info = {k: str(v) for k, v in img.info.items() if not isinstance(v, bytes)}
+    exif = img.getexif()
+    tags = {str(k): str(v) for k, v in exif.items()}
+    print(f"mode: {img.mode}")
+    print(f"dimensions: {img.size}")
+    print(f"format: {img.format}")
+    if info:
+        print("info:")
+        for k, v in sorted(info.items()):
+            print(f"  {k}: {v}")
+    if tags:
+        print("exif:")
+        for k, v in sorted(tags.items()):
+            print(f"  {k}: {v}")
+except Exception as e:
+    pass # print(f"Pillow error: {e}", file=sys.stderr)
+' "$filepath"
+
+  # -- jhead (JPEG EXIF) --
+  subsection "jhead (JPEG EXIF/IPTC)"
+  run_if jpeg jhead "$filepath"
+
+  # -- jpeginfo (JPEG structure) --
+  subsection "jpeginfo (JPEG markers + comments)"
+  run_if jpeg jpeginfo -c "$filepath" | sed 's/^/jpeginfo: /'
+
+  # -- rdjpgcom (JPEG comments) --
+  subsection "rdjpgcom (JPEG text comments)"
+  run_if jpeg rdjpgcom "$filepath"
+
+  # -- jpegexiforient (JPEG EXIF orientation) --
+  subsection "jpegexiforient (JPEG EXIF orientation tag)"
+  run_if jpeg jpegexiforient "$filepath"
+
+  # -- pngcheck (PNG structure) --
+  subsection "pngcheck (PNG chunk analysis)"
+  run_if png pngcheck -v "$filepath"
+
+  # -- tiffinfo / tiffdump (TIFF structure) --
+  subsection "tiffinfo (TIFF IFD dump)"
+  run_if tiff tiffinfo "$filepath"
+
+  subsection "tiffdump (TIFF raw dump)"
+  run_if tiff tiffdump "$filepath"
+
+  # -- webpinfo (WebP structure) --
+  subsection "webpinfo (WebP chunk structure)"
+  run_if webp webpinfo "$filepath"
+
+  # -- avifdec (AVIF structure) --
+  subsection "avifdec (AVIF info)"
+  run_if avif avifdec --info "$filepath"
+
+  # -- jxlinfo (JPEG XL structure) --
+  subsection "jxlinfo (JPEG XL codestream info)"
+  run_if jxl jxlinfo "$filepath"
+
+  # -- heif-info (HEIF/HEIC info) --
+  subsection "heif-info (HEIF/HEIC structure)"
+  run_if heif heif-info "$filepath"
+  run_if heic heif-info "$filepath"
+
+  # -- ffprobe (container + codec metadata) --
+  subsection "ffprobe"
+  run ffprobe -v quiet -show_streams "$filepath"
+
+  # -- mediainfo --
+  subsection "MediaInfo"
+  run mediainfo "$filepath"
+
+  # -- netpbm (cross-format info) --
+  subsection "pamfile (NetPBM file info)"
+  run pamfile "$filepath"
+
+  # -- GIF animation dump --
+  subsection "anim_dump (GIF animation frames)"
+  run_if gif anim_dump "$filepath" 2>&1
+  rm -f dump_00??.png # left over by anim_dump
+
+  section "DONE: $filepath"
+done
