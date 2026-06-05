@@ -134,7 +134,8 @@ except Exception as e:
 
   # -- GIF animation dump --
   subsection "anim_dump (GIF animation frames)"
-  run_if gif anim_dump "$filepath" 2>&1 || true
+  run_if gif anim_dump "$filepath" 2>&1
+  rm -f dump_00??.png # left over by anim_dump
 
   section "DONE: $filepath"
 done
