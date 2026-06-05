@@ -22,6 +22,7 @@ examples:
 	git clone --depth 1 https://github.com/ianare/exif-samples.git
 	rm -f exif-samples/jpg/corrupted.jpg
 	mv exif-samples/jpg/WWL_\(Polaroid\)_ION230.jpg exif-samples/jpg/WWL_.Polaroid._ION230.jpg
+	mv exif-samples/tiff/Crémieux11.tiff exif-samples/tiff/Cremieux11.tiff
 	mkdir -p alt-examples/
 	curl -sLo alt-examples/sampleWithExifData.png 'https://github.com/drewnoakes/metadata-extractor-images/raw/main/png/sampleWithExifData.png'
 	curl -sLo alt-examples/Nikon_D1X.webp 'https://github.com/drewnoakes/metadata-extractor-images/raw/main/webp/Nikon%20D1X.webp'
