@@ -71,7 +71,7 @@ MDIFF_FILES := $(IMAGE_FILES:%=%.mdiff)
 ls.mdiff: ; printf '%s\n' $(MDIFF_FILES)
 # image.ext.mdiff: img.ext.fdata img.wm.ext.fdata
 $(foreach I,$(IMAGE_FILES),$(eval \
-  $I.mdiff : $(call add.wm,$I).fdata $I.fdata $(MAKEFILE_DEP) ; $(QGEN) $$@ && diff -U0 $I.fdata $$< > $$@.tmp ; mv $$@.tmp $$@ \
+  $I.mdiff : $(call add.wm,$I).fdata $I.fdata $(MAKEFILE_DEP) ; $(QGEN) $$@ && git diff --no-index -U0 $I.fdata $$< > $$@.tmp ; mv $$@.tmp $$@ \
 ))
 
 GENERATED_FILES = $(WM_FILES) $(MDATA_FILES) $(MDIFF_FILES)
