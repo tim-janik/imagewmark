@@ -47,7 +47,7 @@ compilecxxflags = $(CXXFLAGS) $(EXTRA_FLAGS) $($<.FLAGS) $($@.FLAGS) -MQ $@ -MMD
 CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 
 # == cxx/imagewmark (add only) ==
-cxx/imagewmark.sources := cxx/imagewmark-add.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/embed.cc
+cxx/imagewmark.sources := cxx/imagewmark-add.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/embed.cc cxx/jpeg_quality.cc
 cxx/imagewmark.objects := $(cxx/imagewmark.sources:.cc=.o)
 cxx/imagewmark.LIBS    := $(cxx/libvips.libs)
 $(cxx/imagewmark.objects): $(CXXDEPS)
