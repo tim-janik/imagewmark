@@ -20,6 +20,7 @@
 #include "utils.hh"
 #include "random.hh"
 #include "convcode.hh"
+#include "jpeg_quality.hh"
 
 using FloatS = std::vector<float>;
 using DoubleS = std::vector<double>;
@@ -348,7 +349,7 @@ compute_psnr (const VImage &orig, const VImage &wm)
 
 /// Save the watermarked image to disk, preserving format-specific options.
 static void
-save_host_image (const VImage &img, const std::string &path)
+save_host_image (const VImage &img, const std::string &path, const std::string &input_path)
 {
   // Write the result including ALL metadata
   auto save_opts = VImage::option()->set ("keep", VIPS_FOREIGN_KEEP_ALL); // drop meta-data: VIPS_FOREIGN_KEEP_NONE
@@ -359,7 +360,7 @@ save_host_image (const VImage &img, const std::string &path)
   // Check if the output is a PNG (case-insensitive)
   std::string out_lower = path;
   std::transform (out_lower.begin(), out_lower.end(), out_lower.begin(), ::tolower);
-  if (out_lower.length() >= 4 && out_lower.substr (out_lower.length() - 4) == ".png") {
+  if (string_endswith (out_lower, ".png")) {
     // 0 = no compression (fastest, huge file)
     // 1 = minimum compression, better than OpenCV which forces Z_RLE level=0
     // 3 = fast, reasonable size
@@ -373,6 +374,17 @@ save_host_image (const VImage &img, const std::string &path)
     save_opts->set ("interlace", 0);
     // Avoid palette dithering and quantization
     save_opts->set ("palette", 0);
+  }
+  else if (string_endswith (out_lower, ".jpg") || string_endswith (out_lower, ".jpeg")) {
+    // JPEG: estimate quality from input, fallback to 90 to preserve luma
+    int q = estimate_jpeg_quality (input_path.c_str(), 90);
+    q = std::max (q, 90);
+    save_opts->set ("Q", q);
+    save_opts->set ("optimize_coding", true);
+    save_opts->set ("interlace", true);
+    save_opts->set ("subsample_mode", VIPS_FOREIGN_SUBSAMPLE_AUTO);
+    // save_opts->set ("trellis_quant", true);
+    // save_opts->set ("overshoot_deringing", true);
   }
   img.write_to_file (path.c_str(), save_opts);
 }
@@ -503,7 +515,7 @@ command_add (const AddOptions &opt)
   watermarked = round_pixels (watermarked);
 
   // Write the result
-  save_host_image (watermarked, opt.output_img);
+  save_host_image (watermarked, opt.output_img, opt.input_img);
 
   // Optional quality reporting
   if (opt.trace_psnr || opt.trace_quality) {
