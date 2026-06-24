@@ -192,7 +192,7 @@ define RESULTS_JQ
 ($$all | map(select(.bits == "$(WATERMARK)"))) as $$correct |
 (if ($$correct | length) > 0 then $$correct else $$all end |
  max_by(.jsd)) as $$best |
-"\(.filename) jsd=\($$best.jsd) bits=\($$best.bits)"
+"\(.filename) jsd=\($$best.jsd) sync=\($$best.sync) bits=\($$best.bits)"
 endef
 
 results.txt: $(EXTRACT_FILES) $(MAKEFILE) $(SRCDIR)/tests/report.py
