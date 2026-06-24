@@ -58,7 +58,7 @@ cxx/imagewmark: $(cxx/imagewmark.objects)
 ALL_TARGETS += cxx/imagewmark
 
 # == cxx/wmops (get and helpers) ==
-cxx/wmops.sources := cxx/wmops.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc
+cxx/wmops.sources := cxx/wmops.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/jpeg_quality.cc
 cxx/wmops.objects := $(cxx/wmops.sources:.cc=.o)
 cxx/wmops.LIBS    := $(cxx/opencv4.libs)
 $(cxx/wmops.objects): $(CXXDEPS)

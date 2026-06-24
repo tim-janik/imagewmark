@@ -2,6 +2,7 @@
 #include "imagewmark.hh"
 #include "random.hh"
 #include "convcode.hh"
+#include "jpeg_quality.hh"
 #include <sys/stat.h>
 #include <stdio.h>
 
@@ -52,6 +53,11 @@ main (int argc, char *argv[])
 
   // RAND
   auto *cmd_rand = app.add_subcommand ("rand", "Internal key based PRNG");
+
+  // JPEG-QUALITY <inputimage>
+  std::string jpeg_quality_input;
+  auto *cmd_jpeg_quality = app.add_subcommand ("jpeg-quality", "Estimate JPEG quality from DQT tables");
+  cmd_jpeg_quality->add_option ("inputimage", jpeg_quality_input, "Input JPEG image")->required();
 
   // --- Parse Arguments ---
   CLI11_PARSE (app, argc, argv);
@@ -134,6 +140,9 @@ main (int argc, char *argv[])
     s += '\n'; // remove trailing comma
     s += "}";
     printf ("%s\n", s.c_str());
+  } else if (cmd_jpeg_quality->parsed()) {
+    const int q = estimate_jpeg_quality (jpeg_quality_input.c_str(), -1);
+    printf ("%d\n", q);
   }
 
   return 0;
