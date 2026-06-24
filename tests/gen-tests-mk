@@ -130,6 +130,7 @@ def main():
   parser.add_argument ("--cornersync", choices = ['on', 'off', 'auto'], default = 'auto', help = "Set cornersync aided detection mode (on|off|auto).")
   parser.add_argument ("--attacks", type = str, default = 'default', help = "Comma-separated list of attacks to run or one of: all, extended, default")
   parser.add_argument ("--imagewmark", type = str, help = "Alternative imagewmark binary")
+  parser.add_argument ("--preserve-sizes", action = "store_true", help = "Disable the j90randomsizej80g attack (no random resizing).")
   args = parser.parse_args()
   eprint (f"SEED: {args.seed}")
   random.seed (args.seed)
@@ -162,6 +163,8 @@ def main():
       content = re.sub (r'^ATTACKS\s*\?=.*', 'ATTACKS = $(DEFAULT_ATTACKS)', content, 0, re.M)
     else:
       content = re.sub (r'^ATTACKS\s*\?=.*', f'ATTACKS = { " ".join (args.attacks.split (",")) }', content, 0, re.M)
+    if args.preserve_sizes:
+      content = re.sub (r'^(DEFAULT_ATTACKS\s*\+=\s*j90randomsizej80g)', r'# \1', content, flags=re.M)
     dst.write (content)
 
   # crawl imagedir for files with an image extension
@@ -178,10 +181,15 @@ def main():
   if args.seed != 0:
     random.shuffle (input_image_filepaths)
 
-  # draw randomized resolutions
-  resolution_min, resolution_max, resolution_pdf, resolution_cdf, resolution_icdf = setup_icdf ()
-  resolutions2d = generate_resolutions (resolution_icdf, resolution_min, resolution_max, len (input_image_filepaths))
-  target_sizes = []
+  if args.preserve_sizes:
+    resolutions2d = None
+    target_sizes = []
+    eprint ("skipping random size generation (--preserve-sizes)")
+  else:
+    # draw randomized resolutions
+    resolution_min, resolution_max, resolution_pdf, resolution_cdf, resolution_icdf = setup_icdf ()
+    resolutions2d = generate_resolutions (resolution_icdf, resolution_min, resolution_max, len (input_image_filepaths))
+    target_sizes = []
 
   # copy all images into output_dir + '/inputs/'
   inputsdir = os.path.join (output_dir, 'inputs')
@@ -190,21 +198,27 @@ def main():
   for imgidx, src_image_path in enumerate (input_image_filepaths):
     imgname = 'img%05u' % imgcounter
     dstname = os.path.join (inputsdir, imgname)
-    rw, rh = resolutions2d[imgidx]
-    target_sizes.append ((imgname, f"{rw}:{rh}"))
-    if symlink (src_image_path, dstname):
-      eprint ("  SYMLINK", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
+    if resolutions2d is not None:
+      rw, rh = resolutions2d[imgidx]
+      target_sizes.append ((imgname, f"{rw}:{rh}"))
+      if symlink (src_image_path, dstname):
+        eprint ("  SYMLINK", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
+      else:
+        eprint ("  KEEP   ", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
     else:
-      eprint ("  KEEP   ", dstname, "->", src_image_path, f"(target size: {rw}x{rh})")
+      if symlink (src_image_path, dstname):
+        eprint ("  SYMLINK", dstname, "->", src_image_path)
+      else:
+        eprint ("  KEEP   ", dstname, "->", src_image_path)
     imgcounter += 1
     if args.max_count > 0 and imgcounter > args.max_count:
       break
 
-  # generate attacks.inc that lists all attacks
+  # generate randomsize.inc
   randomsize_inc_path = os.path.join (output_dir, 'randomsize.inc')
   eprint ("adding Makefile:", randomsize_inc_path)
   with open (randomsize_inc_path, 'w') as f:
-    # Assign target-specific ATTACK_SIZE variable for each image
+    # Assign target-specific attack size for each image
     for img, sz in target_sizes:
       f.write (f'$(ATTACK_RANDOMSIZE)/{img}: RANDOMSIZE := {sz}\n')
 
