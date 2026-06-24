@@ -12,6 +12,7 @@
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <glib.h>
 #include <string>
 #include <vector>
 #include <vips/vips8>
@@ -376,9 +377,10 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
     save_opts->set ("palette", 0);
   }
   else if (string_endswith (out_lower, ".jpg") || string_endswith (out_lower, ".jpeg")) {
-    // JPEG: estimate quality from input, fallback to 90 to preserve luma
-    int q = estimate_jpeg_quality (input_path.c_str(), 90);
-    q = std::max (q, 90);
+    const double dim = std::sqrt (img.width() * img.height()); // allow q < 90 for 2k+ images
+    const int min_q = std::clamp (90.0 - (dim - 2048) / (8192 - 2048) * 20.0 + 0.5, 70.0, 90.0);
+    // JPEG: estimate quality from input, fallback to min_q to preserve luma
+    const int q = std::max (min_q, estimate_jpeg_quality (input_path.c_str(), min_q));
     save_opts->set ("Q", q);
     save_opts->set ("optimize_coding", true);
     save_opts->set ("interlace", true);
@@ -524,6 +526,19 @@ command_add (const AddOptions &opt)
   }
 }
 
+// Silence some of VIPS's warnings.
+static void
+silence_libvips_warnings (const gchar *log_domain, GLogLevelFlags log_level,
+                           const gchar *message, gpointer /*user_data*/)
+{
+  // Silence VIPS's "large XMP not saved" warning. JPEG APP1 segments are limited to 65533 bytes (ISO/IEC 10918-1
+  // §B.1.1.2). XMP > ~64KB requires extended-packet splitting (XMP Spec Part 3), which VIPS does not implement.
+  if ((log_level & G_LOG_LEVEL_WARNING) && g_strcmp0 (log_domain, "VIPS") == 0 &&
+      g_str_has_prefix (message, "VipsJpeg: large XMP not saved"))
+    return; // skip this warning
+  g_log_default_handler (log_domain, log_level, message, nullptr);
+}
+
 /// Entry point - run after CLI parsing, implements `command_add`
 int
 imagewmark_add (const AddOptions &options)
@@ -531,6 +546,7 @@ imagewmark_add (const AddOptions &options)
   if (VIPS_INIT (argv0 ? argv0 : "imagewmark") != 0)
     die (1, "failed to initialize libvips: %s", vips_error_buffer());
   std::atexit (vips_shutdown);
+  g_log_set_handler ("VIPS", G_LOG_LEVEL_WARNING, silence_libvips_warnings, nullptr);
   add_config.prng_wm_pattern = new Random (0, Random::Stream::wm_pattern);
   add_config.prng_wm_mask = new Random (0, Random::Stream::wm_mask);
   try {
