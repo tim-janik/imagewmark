@@ -377,9 +377,10 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
     save_opts->set ("palette", 0);
   }
   else if (string_endswith (out_lower, ".jpg") || string_endswith (out_lower, ".jpeg")) {
-    // JPEG: estimate quality from input, fallback to 90 to preserve luma
-    int q = estimate_jpeg_quality (input_path.c_str(), 90);
-    q = std::max (q, 90);
+    const double dim = std::sqrt (img.width() * img.height()); // allow q < 90 for 2k+ images
+    const int min_q = std::clamp (90.0 - (dim - 2048) / (8192 - 2048) * 20.0 + 0.5, 70.0, 90.0);
+    // JPEG: estimate quality from input, fallback to min_q to preserve luma
+    const int q = std::max (min_q, estimate_jpeg_quality (input_path.c_str(), min_q));
     save_opts->set ("Q", q);
     save_opts->set ("optimize_coding", true);
     save_opts->set ("interlace", true);
