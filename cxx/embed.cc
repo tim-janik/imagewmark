@@ -12,6 +12,7 @@
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <glib.h>
 #include <string>
 #include <vector>
 #include <vips/vips8>
@@ -524,6 +525,19 @@ command_add (const AddOptions &opt)
   }
 }
 
+// Silence some of VIPS's warnings.
+static void
+silence_libvips_warnings (const gchar *log_domain, GLogLevelFlags log_level,
+                           const gchar *message, gpointer /*user_data*/)
+{
+  // Silence VIPS's "large XMP not saved" warning. JPEG APP1 segments are limited to 65533 bytes (ISO/IEC 10918-1
+  // §B.1.1.2). XMP > ~64KB requires extended-packet splitting (XMP Spec Part 3), which VIPS does not implement.
+  if ((log_level & G_LOG_LEVEL_WARNING) && g_strcmp0 (log_domain, "VIPS") == 0 &&
+      g_str_has_prefix (message, "VipsJpeg: large XMP not saved"))
+    return; // skip this warning
+  g_log_default_handler (log_domain, log_level, message, nullptr);
+}
+
 /// Entry point - run after CLI parsing, implements `command_add`
 int
 imagewmark_add (const AddOptions &options)
@@ -531,6 +545,7 @@ imagewmark_add (const AddOptions &options)
   if (VIPS_INIT (argv0 ? argv0 : "imagewmark") != 0)
     die (1, "failed to initialize libvips: %s", vips_error_buffer());
   std::atexit (vips_shutdown);
+  g_log_set_handler ("VIPS", G_LOG_LEVEL_WARNING, silence_libvips_warnings, nullptr);
   add_config.prng_wm_pattern = new Random (0, Random::Stream::wm_pattern);
   add_config.prng_wm_mask = new Random (0, Random::Stream::wm_mask);
   try {
