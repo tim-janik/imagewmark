@@ -1,6 +1,9 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 
-CXX		?= clang++
+# Prefer clang++ if available
+ifeq ($(origin CXX),default)
+  CXX := $(shell command -v clang++ >/dev/null 2>&1 && echo clang++ || echo '$(CXX)')
+endif
 CXXSTD		:= -std=gnu++17
 CXXFLAGS	:= -Wall -O3 -g
 LDLIBS		:= -lOpenImageIO -lOpenImageIO_Util -lgcrypt
