@@ -8,16 +8,18 @@ RUN ln -sf bash /bin/sh && ls -al /bin/sh
 # Add dependencies
 RUN apt-get update && apt-get -y upgrade
 RUN apt-get install -y build-essential \
+	git wget ca-certificates \
+	libvips-dev \
+	libgcrypt20-dev \
+	libopenimageio-dev \
+	libopencv-dev \
+	pandoc \
 	python3-numpy \
 	python3-scipy \
 	python3-matplotlib \
 	python3-imageio \
 	python3-opencv \
-	python3-skimage \
-	libgcrypt20-dev \
-	libopenimageio-dev \
-	libopencv-dev \
-	pandoc
+	python3-skimage
 
 # Setup clean source dir
 ADD . /imagewmark
