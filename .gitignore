@@ -26,3 +26,6 @@ x*
 __pycache__
 olddocs/
 report.md
+# Re-include tests/ (files under an ignored parent directory need explicit negations)
+!tests/
+!tests/formats/
