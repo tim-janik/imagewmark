@@ -222,6 +222,14 @@ wm_range (const VImage &W, float strength)
   return 16;
 }
 
+/// Clamp all pixel values into [lo, hi]
+static VImage
+clamp_range (const VImage &img, double lo, double hi)
+{
+  const VImage low = (img < lo).ifthenelse (lo, img);
+  return (low > hi).ifthenelse (hi, low);
+}
+
 /** Clip the host image to leave head-room for the watermark.
  * we need some headroom to add the watermark, so in this function we ensure that
  * ll channels of the image are in range [r, 255 - r], where r is the is the
@@ -237,8 +245,7 @@ wm_pre_clip (const VImage &img, const VImage &W, float strength)
    *   individual color channels
    */
   const double r = wm_range (W, strength);
-  const VImage clipped = (img < r).ifthenelse (r, img);
-  return (clipped > 255 - r).ifthenelse (255 - r, clipped);
+  return clamp_range (img, r, 255 - r);
 }
 
 #if 0
@@ -264,15 +271,63 @@ print_first_pixels (const VImage &img, int n = 16)
 }
 #endif
 
-/// Convert from float to int; see: dither.py:round_pixels()
-static VImage
-round_pixels (const VImage &img)
+/// Normalization factor mapping native pixel values into the canonical [0,255]
+/// float range the watermark algorithm works in (mirrors common.py's 0-255 range).
+static double
+format_scale (VipsBandFormat format)
 {
-  // Add 0.5 to round to nearest integer when converting to 8-bit unsigned integer
-  //dprintf (2, "round_pixels: image type (before) = %s %s\n", vips_enum_nick (VIPS_TYPE_INTERPRETATION, img.interpretation()), vips_enum_nick (VIPS_TYPE_BAND_FORMAT, img.format()));
-  VImage result = (img + 0.5).cast (VIPS_FORMAT_UCHAR);
-  //dprintf (2, "round_pixels: image type (after)  = %s %s\n", vips_enum_nick (VIPS_TYPE_INTERPRETATION, img.interpretation()), vips_enum_nick (VIPS_TYPE_BAND_FORMAT, img.format()));
-  return result;
+  switch (format) {
+  case VIPS_FORMAT_UCHAR:  return 1.0;              // 8-bit [0,255]
+  case VIPS_FORMAT_USHORT: return 255.0 / 65535.0;  // 16-bit [0,65535]
+  case VIPS_FORMAT_FLOAT:
+  case VIPS_FORMAT_DOUBLE: return 255.0;            // floating point [0,1]
+  default:
+    die (1, "unsupported image pixel format: %s", vips_enum_nick (VIPS_TYPE_BAND_FORMAT, format));
+  }
+}
+
+/// Normalize an image into the canonical [0,255] float range the watermark
+/// algorithm works in. 8-bit input has scale 1.0 and skips the multiply.
+static VImage
+image_to_canonical (const VImage &img)
+{
+  const double scale = format_scale (img.format());
+  VImage result = img.cast (VIPS_FORMAT_FLOAT);
+  return scale == 1.0 ? result : result * scale;
+}
+
+/// Convert canonical [0,255] floats back into the host image's native pixel
+/// format, preserving its bit depth; see: dither.py:round_pixels()
+static VImage
+round_pixels (const VImage &img, VipsBandFormat format, VipsInterpretation native_interp)
+{
+  VImage scaled;
+  if (format == VIPS_FORMAT_FLOAT || format == VIPS_FORMAT_DOUBLE)
+    scaled = img / 255.0; // floating point formats are stored in [0,1]
+  else {
+    // Scale back into the native value range (skipped for 8-bit input); add
+    // 0.5 to round to nearest integer, .cast() clips out-of-range values
+    const double scale = format_scale (format);
+    scaled = (scale == 1.0 ? img : img / scale) + 0.5;
+  }
+  // Determine the interpretation to restore on save:
+  VipsInterpretation interp;
+  if (format == VIPS_FORMAT_FLOAT || format == VIPS_FORMAT_DOUBLE)
+    interp = native_interp; // floating point pixels keep the native interpretation
+  else if (native_interp == VIPS_INTERPRETATION_CMYK)
+    interp = VIPS_INTERPRETATION_CMYK; // CMYK colorspace round trip
+  else if (img.bands() <= 1)
+    // Use the 16-bit interpretation variant for USHORT, otherwise savers
+    // (e.g. pngsave) down-convert 16-bit images to 8-bit
+    interp = format == VIPS_FORMAT_USHORT ? VIPS_INTERPRETATION_GREY16 : VIPS_INTERPRETATION_B_W;
+  else
+    interp = format == VIPS_FORMAT_USHORT ? VIPS_INTERPRETATION_RGB16 : VIPS_INTERPRETATION_sRGB;
+  // Nothing to convert if the pipeline already produced the target format
+  if (scaled.format() == format && scaled.interpretation() == interp)
+    return scaled;
+  // The .copy() also resets the image pipeline to avoid libvips "invalid
+  // buffer size" errors after complex operations like bandsplit + arithmetic
+  return scaled.cast (format).copy (VImage::option()->set ("interpretation", interp));
 }
 
 // "ITU-R BT.1700 Characteristics of composite video signals for conventional analogue television systems"
@@ -299,23 +354,37 @@ yiq2rgb_matrix()
   return VImage::new_matrix (3, 3, const_cast<double*> (matrix), 9);
 }
 
-/// Embed the watermark
+/// Naive device color conversion CMYK→RGB, mirrors libvips' fallback CMYK
+/// handling: R = (1-C)·(1-K), G = (1-M)·(1-K), B = (1-Y)·(1-K), bands [0,255]
+static VImage
+cmyk_to_rgb (const VImage &c, const VImage &m, const VImage &y, const VImage &k)
+{
+  const VImage one_minus_k = (255.0 - k) / 255.0;
+  return VImage::bandjoin ({ (255.0 - c) * one_minus_k,
+                             (255.0 - m) * one_minus_k,
+                             (255.0 - y) * one_minus_k });
+}
+
+/// Embed the watermark into the luminance channel of a canonical [0,255] float
+/// image. Greyscale and RGB images follow the Python implementation; for CMYK
+/// the luminance is taken from the naive RGB equivalent and the C,M,Y channels
+/// are adjusted by the luminance delta while the K channel stays untouched.
 static VImage
 add_watermark (const VImage &src, const VImage &W, double strength, const AddOptions &options)
 {
-  // Convert to float and apply head-room clipping
-  // TODO: check element type of Mat src, do we need .cast ?
-  // TODO: check, can we use single pass for cast(float) + clip ?
-  VImage img = wm_pre_clip (src.cast (VIPS_FORMAT_FLOAT), W, strength);
   // Extract the Y (luminance) channel
-  VImage yiq, Y;
+  VImage Y;
   std::vector<VImage> ch;
   if (src.bands() == 1)
-    Y = img;
+    Y = wm_pre_clip (src, W, strength);
   else if (src.bands() == 3) {
-    yiq = img.recomb (rgb2yiq_matrix());
+    const VImage yiq = wm_pre_clip (src, W, strength).recomb (rgb2yiq_matrix());
     ch = yiq.bandsplit();
     Y = ch[0];
+  } else if (src.bands() == 4) {
+    ch = src.bandsplit();
+    const VImage rgb = wm_pre_clip (cmyk_to_rgb (ch[0], ch[1], ch[2], ch[3]), W, strength);
+    Y = rgb.recomb (rgb2yiq_matrix()).extract_band (0);
   } else
     die (1, "Input image with %d channels not supported", src.bands());
   // Compute local variance
@@ -324,22 +393,33 @@ add_watermark (const VImage &src, const VImage &W, double strength, const AddOpt
   VImage I_s = compute_F (I_var, strength);
   // Add the scaled watermark
   VImage Y_wm = Y + W * I_s;
-  // TODO: Check if we need to clip Y_wm back to [0,255] range, or do we always have enough headroom, or do we auto-clip later ?
   // Reconstruct image from luminance channel
   if (src.bands() == 3) {
     ch[0] = Y_wm;
     return VImage::bandjoin (ch).recomb (yiq2rgb_matrix());
+  } else if (src.bands() == 4) {
+    // C' = C - (Y'-Y)·255/(255-K), keeping K and the black generation intact;
+    // pixels with K=255 are pure black and cannot change luminance, keep the
+    // original separation there
+    const VImage delta = Y_wm - Y;
+    const VImage denom = 255.0 - ch[3];
+    const VImage factor = (denom < 0.5).ifthenelse (0.0, 255.0 / denom);
+    const VImage delta_factor = delta * factor;
+    ch[0] = clamp_range (ch[0] - delta_factor, 0, 255);
+    ch[1] = clamp_range (ch[1] - delta_factor, 0, 255);
+    ch[2] = clamp_range (ch[2] - delta_factor, 0, 255);
+    return VImage::bandjoin (ch);
   } else
     return Y_wm;
 }
 
-/// PSNR (peak-signal-to-noise ratio), see: common.py:psnr()
+/// PSNR (peak-signal-to-noise ratio) of two canonical [0,255] float images,
+/// see: common.py:psnr()
 static double
 compute_psnr (const VImage &orig, const VImage &wm)
 {
-  // TODO: is .cast(FLOAT) needed ?
   // Mean Squared Error: Σ |orig - wm|² / (H × W × bands)
-  const double mse = (orig.cast (VIPS_FORMAT_FLOAT) - wm.cast (VIPS_FORMAT_FLOAT)).pow (2.0).avg();
+  const double mse = (orig - wm).pow (2.0).avg();
   // No difference at all?
   if (mse == 0)
     return 100;
@@ -355,8 +435,9 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
   // Write the result including ALL metadata
   auto save_opts = VImage::option()->set ("keep", VIPS_FOREIGN_KEEP_ALL); // drop meta-data: VIPS_FOREIGN_KEEP_NONE
 
-  // TODO: preserve number of input image channels
-  // TODO: preserve bit depth (8bpp, 16bpp) when writing
+  // The input image's channels (incl. alpha) and bit depth are preserved by
+  // load_host_image() + round_pixels(); savers may still down-convert where
+  // the target format cannot hold them (e.g. JPEG is always 8-bit)
 
   // Check if the output is a PNG (case-insensitive)
   std::string out_lower = path;
@@ -391,28 +472,82 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
   img.write_to_file (path.c_str(), save_opts);
 }
 
-static VImage
+/// True if the output file extension selects a saver that can store CMYK
+static bool
+save_supports_cmyk (const std::string &path)
+{
+  const std::string lower = string_tolower (path);
+  return string_endswith (lower, ".jpg") || string_endswith (lower, ".jpeg") ||
+         string_endswith (lower, ".tif") || string_endswith (lower, ".tiff");
+}
+
+/// True if the output file extension selects a saver that can store an alpha channel
+static bool
+save_supports_alpha (const std::string &path)
+{
+  const std::string lower = string_tolower (path);
+  for (const char *ext : { ".jpg", ".jpeg", ".jpe", ".jfif",
+                           ".ppm", ".pgm", ".pbm", ".pnm", ".pfm", ".hdr" })
+    if (string_endswith (lower, ext))
+      return false;
+  return true;
+}
+
+/// True if the output file extension selects a saver that can store floating point pixels
+static bool
+save_supports_float (const std::string &path)
+{
+  const std::string lower = string_tolower (path);
+  for (const char *ext : { ".tif", ".tiff", ".pfm", ".hdr", ".exr", ".jxl", ".v" })
+    if (string_endswith (lower, ext))
+      return true;
+  return false;
+}
+
+/// Host image loaded for watermarking: the watermarkable channels (greyscale,
+/// RGB or CMYK) in their native pixel format, with any alpha channel split off
+/// so it can pass through untouched. `format` and `interpretation` record the
+/// pixel storage to restore on save (bit depth, colorspace round trip).
+struct HostImage {
+  VImage img;                                    // greyscale, RGB or CMYK channels
+  VImage alpha;                                  // split-off alpha channel
+  bool has_alpha = false;                        // true if alpha was split off
+  VipsBandFormat format = VIPS_FORMAT_UCHAR;     // native pixel format of img
+  VipsInterpretation interpretation = VIPS_INTERPRETATION_sRGB; // colorspace of img
+};
+
+/// Load the host image, preserving all channels (including alpha) and the
+/// original pixel format (bit depth). Only the watermarkable channels are
+/// kept in `img`, the alpha channel is split off and rejoined untouched.
+static HostImage
 load_host_image (const std::string &path)
 {
   VImage host = VImage::new_from_file (path.c_str());
-  if (host.has_alpha())
-    // TODO: we need load -> save handling that preserves alpha channel
-    host = host.extract_band (0, VImage::option()->set ("n", host.bands() - 1));
-  if (host.bands() == 1) {
-    // TODO: greyscale should be handled everywhere
-    std::vector<VImage> rgb = { host, host, host };
-    host = VImage::bandjoin (rgb);
-  } else if (host.bands() > 3) {
+  if (host.coding() != VIPS_CODING_NONE) // e.g. LabQ
+    host = host.colourspace (VIPS_INTERPRETATION_sRGB);
+  HostImage result;
+  result.format = host.format();
+  result.interpretation = host.interpretation();
+  // Split off the alpha channel (kept in native format, rejoined untouched)
+  if (host.bands() == 5 && host.has_alpha()) {
+    result.has_alpha = true;
+    result.alpha = host.extract_band (4);
+    host = host.extract_band (0, VImage::option()->set ("n", 4));
+  } else if (host.bands() == 4 && host.has_alpha()) {
+    result.has_alpha = true;
+    result.alpha = host.extract_band (3);
     host = host.extract_band (0, VImage::option()->set ("n", 3));
-    // TODO: this must properly handle CMYK -> RGB, we need something like VIPS_INTERPRETATION_sRGB conversion like cv2.IMREAD_COLOR
+  } else if (host.bands() == 2 && host.has_alpha()) {
+    result.has_alpha = true;
+    result.alpha = host.extract_band (1);
+    host = host.extract_band (0);
   }
-  if (host.bands() != 3)
-    die (1, "failed to load RGB image: %s", path.c_str());
-  // TODO: normalize pixel range, so we dont deal with 0-255 for 8bit and 0-65535 for 16bit images
-  if (host.format() != VIPS_FORMAT_UCHAR)
-    // TODO: investigate if using FLOAT everywhere is better, esp for 16bit images
-    host = host.cast (VIPS_FORMAT_UCHAR);
-  return host.copy (VImage::option()->set ("interpretation", VIPS_INTERPRETATION_sRGB));
+  if (host.interpretation() == VIPS_INTERPRETATION_CMYK && host.bands() != 4)
+    die (1, "unsupported CMYK image (%d channels) for: %s", host.bands(), path.c_str());
+  if (host.bands() != 1 && host.bands() != 3 && host.bands() != 4)
+    die (1, "unsupported image format (%d channels) for: %s", host.bands(), path.c_str());
+  result.img = host;
+  return result;
 }
 
 /// Copy flotas into a VImage with the given dimensions and band count
@@ -429,8 +564,9 @@ image_from_floats (const FloatS &floats, int width, int height, int bands = 1)
 static void
 command_add (const AddOptions &opt)
 {
-  // Load the host image in RGB order
-  VImage host = load_host_image (opt.input_img);
+  // Load the host image, preserving all channels and bit depth
+  HostImage loaded = load_host_image (opt.input_img);
+  const VImage &host = loaded.img;
 
   // Message → payload → ECC → reshape to 16 × 16 matrix
   const std::vector<bool> payload = parse_payload (opt.message_hex.empty() ? "0" : opt.message_hex);
@@ -510,20 +646,49 @@ command_add (const AddOptions &opt)
       W = W.crop (dx, dy, host.width(), host.height());
   }
 
-  // Embed the watermark
-  VImage watermarked = add_watermark (host, W, opt.strength, opt);
-
-  // Conversion to 8-bit
-  watermarked = round_pixels (watermarked);
-
-  // Write the result
-  save_host_image (watermarked, opt.output_img, opt.input_img);
+  // Embed the watermark into the luminance channel (canonical [0,255] floats)
+  const VImage host_canonical = image_to_canonical (host);
+  VImage watermarked = add_watermark (host_canonical, W, opt.strength, opt);
 
   // Optional quality reporting
   if (opt.trace_psnr || opt.trace_quality) {
-    double psnr = compute_psnr (host, watermarked);
+    double psnr = compute_psnr (host_canonical, watermarked);
     dprintf (2, "PSNR: %f\n", psnr);
   }
+
+  // Restore the input image's colorspace and pixel format (bit depth):
+  // - CMYK can only be stored by a few formats, fall back to RGB otherwise
+  // - floating point pixels can only be stored by a few formats, fall back to 8-bit
+  const bool native_cmyk = loaded.interpretation == VIPS_INTERPRETATION_CMYK;
+  const bool out_cmyk = native_cmyk && save_supports_cmyk (opt.output_img);
+  if (native_cmyk && !out_cmyk) {
+    const std::vector<VImage> wmch = watermarked.bandsplit();
+    watermarked = cmyk_to_rgb (wmch[0], wmch[1], wmch[2], wmch[3]);
+    // the embedded ICC profile describes CMYK colors, drop it for RGB output
+    watermarked.remove ("icc-profile-data");
+  }
+  VipsBandFormat out_format = loaded.format;
+  if ((out_format == VIPS_FORMAT_FLOAT || out_format == VIPS_FORMAT_DOUBLE) &&
+      !save_supports_float (opt.output_img))
+    out_format = VIPS_FORMAT_UCHAR;
+  const VipsInterpretation out_interp = out_cmyk ? VIPS_INTERPRETATION_CMYK :
+                                        native_cmyk ? VIPS_INTERPRETATION_sRGB :
+                                        loaded.interpretation;
+  watermarked = round_pixels (watermarked, out_format, out_interp);
+
+  // Rejoin the alpha channel (passes through untouched); formats without alpha
+  // support (e.g. JPEG) drop it here
+  if (loaded.has_alpha && save_supports_alpha (opt.output_img)) {
+    VImage alpha = loaded.alpha;
+    // Convert the alpha band along with the image if the output pixel format
+    // differs from its native format (e.g. float input saved as 8-bit PNG)
+    if (alpha.format() != out_format)
+      alpha = round_pixels (image_to_canonical (alpha), out_format, alpha.interpretation());
+    watermarked = VImage::bandjoin ({ watermarked, alpha });
+  }
+
+  // Write the result
+  save_host_image (watermarked, opt.output_img, opt.input_img);
 }
 
 // Silence some of VIPS's warnings.
