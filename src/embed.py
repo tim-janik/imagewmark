@@ -1,7 +1,7 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 import argparse
 import numpy as np
-import scipy.misc, scipy.signal, cv2
+import scipy.signal, cv2
 import sys
 from plotting import *
 import config, common

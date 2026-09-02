@@ -1,6 +1,6 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 import numpy as np
-import scipy.misc, scipy.signal, cv2
+import scipy.signal, cv2
 import os, sys
 import math, config
 from config import eprint, vprint, dprint, verbose
