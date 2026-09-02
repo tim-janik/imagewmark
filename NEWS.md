@@ -2,8 +2,11 @@
 
 ### Added:
 * Added `results.txt` generation to test suite, listing best JSD scores per extraction
+* Added formats check to `make check`, verifying bit depth, alpha, CMYK and float pixel handling
 
 ### Changed:
+* Preserve input image bit depth (8/16 bit, float), alpha channel, CMYK format and
+  colorspace in the C++ embedding pipeline; convert CMYK to RGB for non-JPEG/TIFF images
 * Replaced OpenCV with libvips for the C++ watermark embedding pipeline
 * Moved to affine transform with bicubic interpolation for image resizing
 * Optimized PNG compression options when saving embedded images
