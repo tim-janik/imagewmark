@@ -8,7 +8,7 @@ from config import vprint, dprint, eprint
 import math
 from plotting import *
 from ddist import distribution_divergence
-import scipy.misc, scipy.signal, cv2
+import scipy.signal, cv2
 import skimage.color
 import imageio
 import subprocess
