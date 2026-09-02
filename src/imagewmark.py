@@ -16,7 +16,7 @@ __version__ = open (str (BASE_DIR / "../.version")).read().strip()
 import argparse
 import embed, extract
 import numpy as np
-import scipy.misc, scipy.signal, cv2
+import scipy.signal, cv2
 import hashlib
 from plotting import *
 import config, common
