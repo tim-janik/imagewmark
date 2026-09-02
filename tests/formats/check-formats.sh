@@ -220,6 +220,7 @@ check '16-bit CMYK output stays 16-bit'     depth_is out_cmyk16.tif 16
 check 'CMYK stays CMYK (16-bit)'            colorspace_grep out_cmyk16.tif 'cmyk'
 check 'CMYK colors preserved (16-bit)'      cmyk_fidelity cmyk16.tif out_cmyk16.tif
 check '16-bit CMYK to JPEG is 8-bit CMYK'   colorspace_grep out_cmyk16.jpg 'cmyk'
+check '16-bit CMYK JPEG output is 8-bit'    depth_is out_cmyk16.jpg 8
 check 'CMYKA TIFF keeps 5 channels'         channels_grep out_cmyka.tif 'cmyka'
 check 'alpha preserved (CMYKA TIFF)'        alpha_cmp cmyka.tif out_cmyka.tif
 # input and output are both converted with the same vips reference conversion,
