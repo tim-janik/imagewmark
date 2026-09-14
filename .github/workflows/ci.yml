@@ -1,6 +1,6 @@
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 
-# Linting: xclip -sel c <.github/workflows/ci-builds.yml # https://rhysd.github.io/actionlint/
+# Linting: xclip -sel c <.github/workflows/ci.yml # https://rhysd.github.io/actionlint/
 
 on:
   push:
@@ -32,17 +32,14 @@ jobs:
     - { uses: actions/upload-artifact@v4, with: { name: imagewmark-snapshot, path: 'imagewmark-*.tar.zst' } }
 
   Ping-IRC:
-    if: always()	# github.event_name != 'pull_request'
-    needs: [Alpine-CI]
+    # Always run, announce tag and trunk pushes only
+    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/trunk' || github.ref_type == 'tag') }}
     runs-on: ubuntu-latest
+    needs: [ Alpine-CI ]
     steps:
-    - { uses: actions/checkout@v4.1.1,  with: { fetch-depth: 0 } }
+    - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0 } }
     - run: git fetch -f --tags          # Fix actions/checkout#290
-    - name: Check-Jobs
-      run: |
-        echo 'Alpine-CI:${{ needs.Alpine-CI.result }}'
-        [[ ${{ needs.Alpine-CI.result }}    =~ success|skipped ]]
     - name: Ping-IRC
-      if: ${{ always() && !env.ACT }}
-      run: |
-        .github/workflows/ircbot.py -q -j "#Anklang" -G -S '${{ job.status }}' "$(git log -1 --format=%s)"
+      if: ${{ always() && !env.ACT }}  # IRCBOT_JOBS indicates 'success'
+      env: { IRCBOT_JOBS: "${{ join(needs.*.result, ' ') }}" }
+      run: .github/workflows/ircbot.py -s irc.libera.chat:6697 -G "#Anklang"
