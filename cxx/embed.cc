@@ -2,16 +2,20 @@
 
 // Based on src/embed.py
 #include <array>
+#include <cerrno>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <filesystem>
+#include <fcntl.h>
 #include <functional>
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <system_error>
+#include <unistd.h>
 #include <glib.h>
 #include <string>
 #include <vector>
@@ -25,7 +29,6 @@
 
 using FloatS = std::vector<float>;
 using DoubleS = std::vector<double>;
-using vips::VError;
 using vips::VImage;
 
 // src/config.py
@@ -469,7 +472,26 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
     // save_opts->set ("trellis_quant", true);
     // save_opts->set ("overshoot_deringing", true);
   }
-  img.write_to_file (path.c_str(), save_opts);
+  const std::filesystem::path output_path (path);
+  const std::filesystem::path directory = output_path.has_parent_path() ? output_path.parent_path() : ".";
+  const std::string tmp_name = "." + output_path.filename().string() + ".imagewmark-XXXXXX";
+  std::string tmp_template = (directory / tmp_name).string();
+  std::vector<char> tmp_buffer (tmp_template.begin(), tmp_template.end());
+  tmp_buffer.push_back ('\0');
+  const int fd = g_mkstemp_full (tmp_buffer.data(), O_RDWR | O_CLOEXEC, 0666);
+  if (fd < 0)
+    throw std::system_error (errno, std::generic_category(), tmp_template);
+  close (fd);
+  const std::string tmp_path = tmp_buffer.data();
+  try {
+    const std::string suffix = output_path.extension();
+    img.write_to_target (suffix.c_str(), vips::VTarget::new_to_file (tmp_path.c_str()), save_opts);
+    std::filesystem::rename (tmp_path, output_path);
+  } catch (...) {
+    std::error_code ec;
+    std::filesystem::remove (tmp_path, ec);
+    throw;
+  }
 }
 
 /// True if the output file extension selects a saver that can store CMYK
@@ -716,8 +738,7 @@ imagewmark_add (const AddOptions &options)
   add_config.prng_wm_mask = new Random (0, Random::Stream::wm_mask);
   try {
     command_add (options);
-  } catch (const VError &e) {
-    std::filesystem::remove (options.output_img);
+  } catch (const std::exception &e) {
     die (1, "%s: error processing %s:\n  %s", options.output_img.c_str(), options.input_img.c_str(), string_reindent (e.what()).c_str());
   }
   return 0;
