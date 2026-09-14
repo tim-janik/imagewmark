@@ -14,6 +14,7 @@
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <sys/stat.h>
 #include <system_error>
 #include <unistd.h>
 #include <glib.h>
@@ -474,11 +475,24 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
   }
   const std::filesystem::path output_path (path);
   const std::filesystem::path directory = output_path.has_parent_path() ? output_path.parent_path() : ".";
-  const std::string tmp_name = "." + output_path.filename().string() + ".imagewmark-XXXXXX";
+  mode_t output_mode = 0600;
+  const int output_fd = open (path.c_str(), O_WRONLY | O_CLOEXEC);
+  if (output_fd >= 0) {
+    struct stat st;
+    if (fstat (output_fd, &st) < 0) {
+      const int error = errno;
+      close (output_fd);
+      throw std::system_error (error, std::generic_category(), path);
+    }
+    output_mode = st.st_mode & 0777;
+    close (output_fd);
+  } else if (errno != ENOENT)
+    throw std::system_error (errno, std::generic_category(), path);
+  const std::string tmp_name = ".imagewmark-XXXXXX";
   std::string tmp_template = (directory / tmp_name).string();
   std::vector<char> tmp_buffer (tmp_template.begin(), tmp_template.end());
   tmp_buffer.push_back ('\0');
-  const int fd = g_mkstemp_full (tmp_buffer.data(), O_RDWR | O_CLOEXEC, 0666);
+  const int fd = g_mkstemp_full (tmp_buffer.data(), O_RDWR | O_CLOEXEC, 0600);
   if (fd < 0)
     throw std::system_error (errno, std::generic_category(), tmp_template);
   close (fd);
@@ -486,6 +500,8 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
   try {
     const std::string suffix = output_path.extension();
     img.write_to_target (suffix.c_str(), vips::VTarget::new_to_file (tmp_path.c_str()), save_opts);
+    if (chmod (tmp_path.c_str(), output_mode) < 0)
+      throw std::system_error (errno, std::generic_category(), tmp_path);
     std::filesystem::rename (tmp_path, output_path);
   } catch (...) {
     std::error_code ec;
