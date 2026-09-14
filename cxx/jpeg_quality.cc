@@ -48,7 +48,7 @@ estimate_jpeg_quality (const char *path, int fallback)
   if (length < 2 || static_cast<uintmax_t> (length) > std::numeric_limits<size_t>::max() ||
       static_cast<uintmax_t> (length) > static_cast<uintmax_t> (std::numeric_limits<std::streamsize>::max()))
     return fallback;
-  const size_t n = length;
+  const size_t n = static_cast<size_t> (length);
   f.seekg (0);
   if (!f)
     return fallback;
@@ -103,7 +103,7 @@ estimate_jpeg_quality (const char *path, int fallback)
       return fallback;
     if (marker == 0x01)
       continue;
-    if (pos + 2 > n)
+    if (n - pos < 2)
       return fallback;
     const size_t len = (d[pos] << 8) | d[pos + 1];
     if (len < 2 || len > n - pos)
