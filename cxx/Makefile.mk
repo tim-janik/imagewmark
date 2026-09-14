@@ -93,8 +93,12 @@ cxx/test-convcode-check: cxx/wmops
 	$(QCHECK)
 	$Q cxx/wmops convcode-check
 	$(QOK)
-cxx/check: cxx/test-convcode-check
-.PHONY: cxx/check cxx/test-convcode-check cxx/test-imagewmark-add
+cxx/test-jpeg-quality: cxx/wmops tests/jpeg-quality.sh
+	$(QCHECK)
+	$Q bash tests/jpeg-quality.sh cxx/wmops
+	$(QOK)
+cxx/check: cxx/test-convcode-check cxx/test-jpeg-quality
+.PHONY: cxx/check cxx/test-convcode-check cxx/test-jpeg-quality cxx/test-imagewmark-add
 check: cxx/check
 
 # == test add --py ==

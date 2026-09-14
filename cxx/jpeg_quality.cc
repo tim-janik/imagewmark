@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <fstream>
+#include <limits>
 #include <vector>
 
 static constexpr int MIN_QUALITY = 50;  // must be >= 50: IJG scale formula changes below that
@@ -43,10 +44,18 @@ estimate_jpeg_quality (const char *path, int fallback)
   std::ifstream f (path, std::ios::binary | std::ios::ate);
   if (!f)
     return fallback;
-  const size_t n = f.tellg();
+  const std::streamoff length = f.tellg();
+  if (length < 2 || static_cast<uintmax_t> (length) > std::numeric_limits<size_t>::max() ||
+      static_cast<uintmax_t> (length) > static_cast<uintmax_t> (std::numeric_limits<std::streamsize>::max()))
+    return fallback;
+  const size_t n = length;
   f.seekg (0);
+  if (!f)
+    return fallback;
   std::vector<uint8_t> b (n);
-  f.read (reinterpret_cast<char*> (b.data()), n);
+  f.read (reinterpret_cast<char*> (b.data()), static_cast<std::streamsize> (n));
+  if (!f)
+    return fallback;
 
   // Must be a JPEG file: SOI marker 0xFFD8 at offset 0.
   // Avoids false positives on J2K, PNG, etc. where random bytes match DQT.
@@ -59,34 +68,74 @@ estimate_jpeg_quality (const char *path, int fallback)
   //   marker 0xFFDB, big-endian length (including the 2 length bytes),
   //   then one or more tables: precision nibble (Pt=0 → 8-bit, Pt=1 → 16-bit),
   //   table ID nibble, followed by 64 coefficients in zigzag order.
-  std::array<int16_t, 64> qt;
+  std::array<uint16_t, 64> qt;
   bool found = false;
-  for (size_t i = 0; i + 4 < n;) {                                      // OOB guard for marker scan
-    if (d[i] != 0xFF || d[i + 1] != 0xDB) {
-      i += 1;
+  bool in_scan = false;
+  bool complete = false;
+  size_t pos = 2;
+  while (pos < n) {
+    if (in_scan)
+      while (pos < n && d[pos] != 0xFF)
+        pos++;
+    if (pos >= n || d[pos++] != 0xFF)
+      return fallback;
+    while (pos < n && d[pos] == 0xFF)
+      pos++;
+    if (pos >= n)
+      return fallback;
+    const uint8_t marker = d[pos++];
+    if (marker == 0x00) {
+      if (!in_scan)
+        return fallback;
       continue;
     }
-    // big-endian segment length, as per spec §B.1.1.2
-    size_t len = (d[i + 2] << 8) | d[i + 3], off = i + 4;
-    while (off < i + 2 + len) {                                         // stay within DQT segment
-      int pt_id = d[off++];
-      int prec = pt_id >> 4;
-      int table_id = pt_id & 0x0f;
-      const size_t need = 64 * (1 + prec);
-      if (off + need > i + 2 + len)
-        break;                                                          // truncated table, skip
-      if (table_id == 0) {                                              // luma, last one wins
-        for (int k = 0; k < 64; ++k) {
-          qt[k] = prec ? ((d[off] << 8) | d[off + 1]) : d[off];
-          off += 1 + prec;
-        }
-        found = true;
-      } else
-        off += need;                                                    // skip non-luma tables
+    if (marker >= 0xD0 && marker <= 0xD7) {
+      if (!in_scan)
+        return fallback;
+      continue;
     }
-    i = i + 2 + len;
+    in_scan = false;
+    if (marker == 0xD9) {
+      complete = true;
+      break;
+    }
+    if (marker == 0xD8)
+      return fallback;
+    if (marker == 0x01)
+      continue;
+    if (pos + 2 > n)
+      return fallback;
+    const size_t len = (d[pos] << 8) | d[pos + 1];
+    if (len < 2 || len > n - pos)
+      return fallback;
+    const size_t segment_end = pos + len;
+    pos += 2;
+    if (marker == 0xDB) {
+      while (pos < segment_end) {
+        const uint8_t pt_id = d[pos++];
+        const uint8_t precision = pt_id >> 4;
+        const uint8_t table_id = pt_id & 0x0F;
+        if (precision > 1 || table_id > 3)
+          return fallback;
+        const size_t width = precision + 1;
+        const size_t need = 64 * width;
+        if (need > segment_end - pos)
+          return fallback;
+        if (table_id == 0) {
+          for (int k = 0; k < 64; ++k) {
+            qt[k] = precision ? ((d[pos] << 8) | d[pos + 1]) : d[pos];
+            pos += width;
+          }
+          found = true;
+        } else
+          pos += need;
+      }
+    }
+    pos = segment_end;
+    if (marker == 0xDA)
+      in_scan = true;
   }
-  if (!found)
+  if (!complete || !found)
     return fallback;                                                    // no luma DQT found
   // Find best Q: minimize sum-of-squared-errors (SSE) against luma reference
   int best = MIN_QUALITY;
