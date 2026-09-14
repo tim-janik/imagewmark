@@ -135,8 +135,11 @@ estimate_jpeg_quality (const char *path, int fallback)
     pos = segment_end;
     if (marker == 0xDA)
       in_scan = true;
-    else if (marker == 0xDC && scan_marker)
+    else if (marker == 0xDC) {
+      if (!scan_marker || len != 4)
+        return fallback;
       in_scan = true;
+    }
   }
   if (!complete || !found)
     return fallback;                                                    // no luma DQT found
