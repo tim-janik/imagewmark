@@ -31,6 +31,14 @@ class VerboseAction (argparse.Action):
     dir = -1 if option_string.find ("q") >= 0 else +1
     setattr (args, self.dest, dir + getattr (args, self.dest))
 
+def int_range (min_value, max_value):
+  def parse (value):
+    ivalue = int (value)
+    if not min_value <= ivalue <= max_value:
+      raise argparse.ArgumentTypeError (f"must be between {min_value} and {max_value}")
+    return ivalue
+  return parse
+
 # Setup CLI parsr for embedding
 def cli_parser():
   p = argparse.ArgumentParser (prog = "imagewmark", description = blurb, formatter_class = argparse.ArgumentDefaultsHelpFormatter)
@@ -68,8 +76,8 @@ def cli_parser():
   getp.add_argument ('--expect', type = str, help = "Expected bit pattern for early exit")
   getp.add_argument ('--json', dest = 'jsonfile', nargs = '?', default = None, const = '/dev/stdout', help = "Write JSON results into file")
   getp.add_argument ('--dump', type = str, default = '', help = "Debug flags to dump intermediate stages")
-  getp.add_argument ('--norm-peak-count', type = int, default = config.norm_peak_count, help = "Number of normalized peaks to use for grid")
-  getp.add_argument ('--raw-peak-count', type = int, default = config.raw_peak_count, help = "Number of raw peaks to use for grid")
+  getp.add_argument ('--norm-peak-count', type = int_range (0, 5000), default = config.norm_peak_count, help = "Number of normalized peaks to use for grid")
+  getp.add_argument ('--raw-peak-count', type = int_range (0, 5000), default = config.raw_peak_count, help = "Number of raw peaks to use for grid")
   getp.add_argument ('--jsd-threshold', type = str, default = config.jsd_threshold, help = "Jensen-Shannon divergence threshold that is sufficient to stop searching for more watermarks")
   getp.add_argument ("--cornersync", choices = ['on', 'off', 'auto'], default = 'auto', help = "Set cornersync aided detection mode: 'on' forces it, 'off' disables it, 'auto' is the default.")
   getp.add_argument ('--perspective', action="store_true", help = "Search for optimal perspective grids")
