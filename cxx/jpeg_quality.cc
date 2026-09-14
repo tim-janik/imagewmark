@@ -74,6 +74,7 @@ estimate_jpeg_quality (const char *path, int fallback)
   bool complete = false;
   size_t pos = 2;
   while (pos < n) {
+    const bool scan_marker = in_scan;
     if (in_scan)
       while (pos < n && d[pos] != 0xFF)
         pos++;
@@ -133,6 +134,8 @@ estimate_jpeg_quality (const char *path, int fallback)
     }
     pos = segment_end;
     if (marker == 0xDA)
+      in_scan = true;
+    else if (marker == 0xDC && scan_marker)
       in_scan = true;
   }
   if (!complete || !found)
