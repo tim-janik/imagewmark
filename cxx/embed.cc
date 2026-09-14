@@ -542,10 +542,27 @@ load_host_image (const std::string &path)
     result.alpha = host.extract_band (1);
     host = host.extract_band (0);
   }
-  if (host.interpretation() == VIPS_INTERPRETATION_CMYK && host.bands() != 4)
-    die (1, "unsupported CMYK image (%d channels) for: %s", host.bands(), path.c_str());
   if (host.bands() != 1 && host.bands() != 3 && host.bands() != 4)
     die (1, "unsupported image format (%d channels) for: %s", host.bands(), path.c_str());
+  const VipsInterpretation interpretation = host.interpretation();
+  const bool grey = host.bands() == 1 &&
+                    (interpretation == VIPS_INTERPRETATION_B_W || interpretation == VIPS_INTERPRETATION_GREY16);
+  const bool rgb = host.bands() == 3 &&
+                   (interpretation == VIPS_INTERPRETATION_RGB || interpretation == VIPS_INTERPRETATION_RGB16 ||
+                    interpretation == VIPS_INTERPRETATION_sRGB);
+  const bool converted_rgb = host.bands() == 3 &&
+                             (interpretation == VIPS_INTERPRETATION_LAB || interpretation == VIPS_INTERPRETATION_XYZ ||
+                              interpretation == VIPS_INTERPRETATION_scRGB);
+  const bool cmyk = host.bands() == 4 && interpretation == VIPS_INTERPRETATION_CMYK;
+  if (!grey && !rgb && !converted_rgb && !cmyk)
+    die (1, "unsupported color interpretation %s (%d channels) for: %s",
+         vips_enum_nick (VIPS_TYPE_INTERPRETATION, interpretation), host.bands(), path.c_str());
+  if (converted_rgb) {
+    host = host.colourspace (VIPS_INTERPRETATION_sRGB);
+    host.remove ("icc-profile-data");
+    if (interpretation != VIPS_INTERPRETATION_scRGB)
+      result.interpretation = VIPS_INTERPRETATION_sRGB;
+  }
   result.img = host;
   return result;
 }
@@ -674,7 +691,12 @@ command_add (const AddOptions &opt)
   const VipsInterpretation out_interp = out_cmyk ? VIPS_INTERPRETATION_CMYK :
                                         native_cmyk ? VIPS_INTERPRETATION_sRGB :
                                         loaded.interpretation;
-  watermarked = round_pixels (watermarked, out_format, out_interp);
+  if (out_interp == VIPS_INTERPRETATION_scRGB &&
+      (out_format == VIPS_FORMAT_FLOAT || out_format == VIPS_FORMAT_DOUBLE)) {
+    watermarked = watermarked.copy (VImage::option()->set ("interpretation", VIPS_INTERPRETATION_sRGB))
+                  .colourspace (VIPS_INTERPRETATION_scRGB).cast (out_format);
+  } else
+    watermarked = round_pixels (watermarked, out_format, out_interp);
 
   // Rejoin the alpha channel (passes through untouched); formats without alpha
   // support (e.g. JPEG) drop it here

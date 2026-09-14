@@ -129,6 +129,15 @@ vips_fidelity()
   awk "BEGIN { exit !($(rmse "$tmpdir/v_ref.png" "$tmpdir/v_out.png") < $3) }"
 }
 
+rejects_interpretation()
+{
+  local input=$1 output=$2
+  if "$IMAGEWMARK" add "$input" "$output" "$WATERMARK" > "$tmpdir/reject.log" 2>&1; then
+    return 1
+  fi
+  [ ! -e "$output" ] && grep -q 'unsupported color interpretation' "$tmpdir/reject.log"
+}
+
 # decodes <file> - watermark must still be decodable
 decodes()
 {
@@ -173,6 +182,10 @@ if command -v vips >/dev/null 2>&1; then
   $IMCONVERT rgba16a.png -depth 16 rgba16a.tif
   vips cast base16.tif f32.v float && vips linear f32.v f32.tif 0.00001525902189669642 0
   vips cast rgba16a.tif f32a.v float && vips linear f32a.v f32a.tif 0.00001525902189669642 0
+  vips colourspace base8.png lab.tif lab
+  vips colourspace base8.png xyz.tif xyz
+  vips colourspace base8.png linear.v scrgb
+  vips copy rgba8.png four-band.v --interpretation multiband
 fi
 
 # == 2. watermark every fixture ==
@@ -194,6 +207,9 @@ if command -v vips >/dev/null 2>&1; then
   "$IMAGEWMARK" add f32a.tif out_f32a.tif "$WATERMARK"     # float+alpha round trip
   "$IMAGEWMARK" add f32.tif out_f32.png "$WATERMARK"       # float to 8-bit PNG
   "$IMAGEWMARK" add f32a.tif out_f32a.png "$WATERMARK"     # float+alpha to 8-bit PNG
+  "$IMAGEWMARK" add lab.tif out_lab.png "$WATERMARK"
+  "$IMAGEWMARK" add xyz.tif out_xyz.png "$WATERMARK"
+  "$IMAGEWMARK" add linear.v out_linear.tif "$WATERMARK"
 fi
 
 # == 3. pixel format, colorspace and alpha checks ==
@@ -240,6 +256,16 @@ check_opt vips 'float+alpha to PNG output is 8-bit' depth_is out_f32a.png 8
 check_opt vips 'alpha preserved (float+alpha to PNG)' alpha_cmp f32a.tif out_f32a.png
 check_opt exiftool 'EXIF metadata preserved (JPEG)' exiftool_grep out_exif.jpg -Artist 'imagewmark-artist'
 check_opt exiftool 'EXIF metadata preserved (PNG)'  exiftool_grep out_exif.png -Artist 'imagewmark-artist'
+if command -v vips >/dev/null 2>&1; then
+  check 'Lab output is sRGB' colorspace_grep out_lab.png srgb
+  check 'Lab colors preserved' vips_fidelity lab.tif out_lab.png 0.05
+  check 'XYZ output is sRGB' colorspace_grep out_xyz.png srgb
+  check 'XYZ colors preserved' vips_fidelity xyz.tif out_xyz.png 0.05
+  check 'linear RGB output is sRGB' colorspace_grep out_linear.tif srgb
+  check 'linear RGB output stays float' depth_is out_linear.tif 32
+  check 'linear RGB colors preserved' vips_fidelity linear.v out_linear.tif 0.05
+  check 'four-band non-CMYK input is rejected' rejects_interpretation four-band.v rejected-four-band.png
+fi
 
 # == 4. watermark decodability ==
 # get/OpenCV cannot read 5-channel CMYK TIFFs nor 32-bit float TIFFs, so CMYKA
