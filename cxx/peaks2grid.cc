@@ -590,7 +590,7 @@ pick_peaks (vector<Peak>& peaks, int normalized_peak_count, int raw_peak_count)
           peaks.erase (it);
         }
     };
-  while (normalized_peak_count || raw_peak_count)
+  while (peaks.size() && (normalized_peak_count || raw_peak_count))
     {
       if (normalized_peak_count)
         {
@@ -665,6 +665,7 @@ main()
         {
           norm_peak_count = atoi (strtok (nullptr, " \n"));
           raw_peak_count = atoi (strtok (nullptr, " \n"));
+          assert (norm_peak_count >= 0 && raw_peak_count >= 0);
         }
       else if (c == "min_edge_bound")
         {
