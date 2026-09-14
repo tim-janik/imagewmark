@@ -282,6 +282,8 @@ check 'watermark decodes (CMYKA PNG)'          decodes out_cmyka.png
 check 'watermark decodes (16-bit RGB JPEG)'    decodes out_rgba16.jpg
 check 'watermark decodes (EXIF JPEG)'          decodes out_exif.jpg
 check_opt vips 'watermark decodes (float to PNG)' decodes out_f32.png
+check_opt vips 'watermark decodes (Lab to PNG)' decodes out_lab.png
+check_opt vips 'watermark decodes (XYZ to PNG)' decodes out_xyz.png
 
 if [ "$failures" -ne 0 ]; then
   echo "check-formats: $failures of $checks checks FAILED"
