@@ -76,11 +76,11 @@ estimate_jpeg_quality (const char *path, int fallback)
       int pt_id = d[off++];
       int prec = pt_id >> 4;
       int table_id = pt_id & 0x0f;
-      if (prec > 1)
-        break;
+      if (prec > 1 || table_id > 3)
+        return fallback;
       const size_t need = 64 * (1 + prec);
       if (off + need > i + 2 + len || off + need > n)
-        break;                                                          // truncated table, skip
+        return fallback;
       if (table_id == 0) {                                              // luma, last one wins
         for (int k = 0; k < 64; ++k) {
           qt[k] = prec ? ((d[off] << 8) | d[off + 1]) : d[off];

@@ -16,8 +16,9 @@ expect_fallback one-byte '\377'
 expect_fallback truncated-dqt '\377\330\377\333\000\103\000'
 expect_fallback app-marker '\377\330\377\340\000\010\377\333\000\103\000\000\377\331'
 
-printf '%b' '\377\330\377\333\000\103\040' > "$tmpdir/invalid-precision.jpg"
-for _ in $(seq 1 64); do printf '\000' >> "$tmpdir/invalid-precision.jpg"; done
+printf '%b' '\377\330\377\333\000\104\000' > "$tmpdir/invalid-precision.jpg"
+for _ in $(seq 1 64); do printf '\001' >> "$tmpdir/invalid-precision.jpg"; done
+printf '%b' '\040' >> "$tmpdir/invalid-precision.jpg"
 printf '%b' '\377\331' >> "$tmpdir/invalid-precision.jpg"
 test "$("$wmops" jpeg-quality "$tmpdir/invalid-precision.jpg")" = -1
 
