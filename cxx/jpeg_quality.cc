@@ -43,10 +43,14 @@ estimate_jpeg_quality (const char *path, int fallback)
   std::ifstream f (path, std::ios::binary | std::ios::ate);
   if (!f)
     return fallback;
-  const size_t n = f.tellg();
+  const auto length = f.tellg();
+  if (length < 2)
+    return fallback;
+  const size_t n (length);
   f.seekg (0);
   std::vector<uint8_t> b (n);
-  f.read (reinterpret_cast<char*> (b.data()), n);
+  if (!f.read (reinterpret_cast<char*> (b.data()), n))
+    return fallback;
 
   // Must be a JPEG file: SOI marker 0xFFD8 at offset 0.
   // Avoids false positives on J2K, PNG, etc. where random bytes match DQT.
@@ -59,7 +63,7 @@ estimate_jpeg_quality (const char *path, int fallback)
   //   marker 0xFFDB, big-endian length (including the 2 length bytes),
   //   then one or more tables: precision nibble (Pt=0 → 8-bit, Pt=1 → 16-bit),
   //   table ID nibble, followed by 64 coefficients in zigzag order.
-  std::array<int16_t, 64> qt;
+  std::array<uint16_t, 64> qt;
   bool found = false;
   for (size_t i = 0; i + 4 < n;) {                                      // OOB guard for marker scan
     if (d[i] != 0xFF || d[i + 1] != 0xDB) {
@@ -68,13 +72,15 @@ estimate_jpeg_quality (const char *path, int fallback)
     }
     // big-endian segment length, as per spec §B.1.1.2
     size_t len = (d[i + 2] << 8) | d[i + 3], off = i + 4;
-    while (off < i + 2 + len) {                                         // stay within DQT segment
+    while (off < i + 2 + len && off < n) {                              // stay within DQT and file
       int pt_id = d[off++];
       int prec = pt_id >> 4;
       int table_id = pt_id & 0x0f;
+      if (prec > 1 || table_id > 3)
+        return fallback;
       const size_t need = 64 * (1 + prec);
-      if (off + need > i + 2 + len)
-        break;                                                          // truncated table, skip
+      if (off + need > i + 2 + len || off + need > n)
+        return fallback;
       if (table_id == 0) {                                              // luma, last one wins
         for (int k = 0; k < 64; ++k) {
           qt[k] = prec ? ((d[off] << 8) | d[off + 1]) : d[off];
