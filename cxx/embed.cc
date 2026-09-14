@@ -531,7 +531,6 @@ struct HostImage {
   VImage img;                                    // greyscale, RGB or CMYK channels
   VImage alpha;                                  // split-off alpha channel
   bool has_alpha = false;                        // true if alpha was split off
-  double alpha_max = 255;
   VipsBandFormat format = VIPS_FORMAT_UCHAR;     // native pixel format of img
   VipsInterpretation interpretation = VIPS_INTERPRETATION_sRGB; // colorspace of img
 };
@@ -545,14 +544,14 @@ load_host_image (const std::string &path)
   VImage host = VImage::new_from_file (path.c_str());
   if (host.coding() != VIPS_CODING_NONE) // e.g. LabQ
     host = host.colourspace (VIPS_INTERPRETATION_sRGB);
+  const VipsInterpretation interpretation = host.interpretation();
+  if (interpretation != VIPS_INTERPRETATION_B_W && interpretation != VIPS_INTERPRETATION_GREY16 &&
+      interpretation != VIPS_INTERPRETATION_RGB && interpretation != VIPS_INTERPRETATION_RGB16 &&
+      interpretation != VIPS_INTERPRETATION_sRGB && interpretation != VIPS_INTERPRETATION_CMYK)
+    host = host.colourspace (VIPS_INTERPRETATION_sRGB);
   HostImage result;
   result.format = host.format();
   result.interpretation = host.interpretation();
-  if (result.interpretation == VIPS_INTERPRETATION_LAB || result.interpretation == VIPS_INTERPRETATION_XYZ ||
-      result.interpretation == VIPS_INTERPRETATION_scRGB)
-    result.alpha_max = vips_interpretation_max_alpha (result.interpretation);
-  else
-    result.alpha_max = 255.0 / format_scale (result.format);
   // Split off the alpha channel (kept in native format, rejoined untouched)
   if (host.bands() == 5 && host.has_alpha()) {
     result.has_alpha = true;
@@ -567,27 +566,10 @@ load_host_image (const std::string &path)
     result.alpha = host.extract_band (1);
     host = host.extract_band (0);
   }
+  if (host.interpretation() == VIPS_INTERPRETATION_CMYK && host.bands() != 4)
+    die (1, "unsupported CMYK image (%d channels) for: %s", host.bands(), path.c_str());
   if (host.bands() != 1 && host.bands() != 3 && host.bands() != 4)
     die (1, "unsupported image format (%d channels) for: %s", host.bands(), path.c_str());
-  const VipsInterpretation interpretation = host.interpretation();
-  const bool grey = host.bands() == 1 &&
-                    (interpretation == VIPS_INTERPRETATION_B_W || interpretation == VIPS_INTERPRETATION_GREY16);
-  const bool rgb = host.bands() == 3 &&
-                   (interpretation == VIPS_INTERPRETATION_RGB || interpretation == VIPS_INTERPRETATION_RGB16 ||
-                    interpretation == VIPS_INTERPRETATION_sRGB);
-  const bool converted_rgb = host.bands() == 3 &&
-                             (interpretation == VIPS_INTERPRETATION_LAB || interpretation == VIPS_INTERPRETATION_XYZ ||
-                              interpretation == VIPS_INTERPRETATION_scRGB);
-  const bool cmyk = host.bands() == 4 && interpretation == VIPS_INTERPRETATION_CMYK;
-  if (!grey && !rgb && !converted_rgb && !cmyk)
-    die (1, "unsupported color interpretation %s (%d channels) for: %s",
-         vips_enum_nick (VIPS_TYPE_INTERPRETATION, interpretation), host.bands(), path.c_str());
-  if (converted_rgb) {
-    host = host.colourspace (VIPS_INTERPRETATION_sRGB);
-    host.remove ("icc-profile-data");
-    if (interpretation != VIPS_INTERPRETATION_scRGB)
-      result.interpretation = VIPS_INTERPRETATION_sRGB;
-  }
   result.img = host;
   return result;
 }
@@ -716,12 +698,7 @@ command_add (const AddOptions &opt)
   const VipsInterpretation out_interp = out_cmyk ? VIPS_INTERPRETATION_CMYK :
                                         native_cmyk ? VIPS_INTERPRETATION_sRGB :
                                         loaded.interpretation;
-  if (out_interp == VIPS_INTERPRETATION_scRGB &&
-      (out_format == VIPS_FORMAT_FLOAT || out_format == VIPS_FORMAT_DOUBLE)) {
-    watermarked = watermarked.copy (VImage::option()->set ("interpretation", VIPS_INTERPRETATION_sRGB))
-                  .colourspace (VIPS_INTERPRETATION_scRGB).cast (out_format);
-  } else
-    watermarked = round_pixels (watermarked, out_format, out_interp);
+  watermarked = round_pixels (watermarked, out_format, out_interp);
 
   // Rejoin the alpha channel (passes through untouched); formats without alpha
   // support (e.g. JPEG) drop it here
@@ -730,8 +707,7 @@ command_add (const AddOptions &opt)
     // Convert the alpha band along with the image if the output pixel format
     // differs from its native format (e.g. float input saved as 8-bit PNG)
     if (alpha.format() != out_format)
-      alpha = round_pixels (alpha.cast (VIPS_FORMAT_FLOAT) * (255.0 / loaded.alpha_max),
-                            out_format, alpha.interpretation());
+      alpha = round_pixels (image_to_canonical (alpha), out_format, alpha.interpretation());
     watermarked = VImage::bandjoin ({ watermarked, alpha });
   }
 
