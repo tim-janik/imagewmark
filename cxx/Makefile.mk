@@ -136,9 +136,13 @@ cxx/check-add--cxx-768: .version imagewmark cxx/peaks2grid cxx/cornersync
 		mkdir "$$tmpdir/dir.png" ; \
 		! ./cxx/imagewmark add $@.png "$$tmpdir/dir.png" $(src/watermark) >/dev/null 2>&1 ; \
 		test -d "$$tmpdir/dir.png" ; \
+		mkfifo "$$tmpdir/fifo.png" ; \
+		status=0 ; timeout 2 ./cxx/imagewmark add $@.png "$$tmpdir/fifo.png" $(src/watermark) >/dev/null 2>&1 || status=$$? ; \
+		test "$$status" -ne 0 ; test "$$status" -ne 124 ; test -p "$$tmpdir/fifo.png" ; \
+		umask 027 ; \
 		printf -v long_name '%0235d' 0 ; \
 		./cxx/imagewmark add $@.png "$$tmpdir/$$long_name.png" $(src/watermark) ; \
-		test -f "$$tmpdir/$$long_name.png" ; \
+		test -f "$$tmpdir/$$long_name.png" ; test "$$(stat -c %a "$$tmpdir/$$long_name.png")" = 640 ; \
 		test -z "$$(find "$$tmpdir" -name '*.imagewmark-*' -print -quit)"
 	$Q rm $@.png $@.wm.png $@.json
 	$Q echo '  OK      ' $@
