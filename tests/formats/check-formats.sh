@@ -105,6 +105,16 @@ alpha_cmp()
   awk "BEGIN { exit !($ae == 0) }"
 }
 
+vips_alpha_cmp()
+{
+  local input=$1 output=$2
+  local input_band=$(($(vipsheader -f bands "$input") - 1))
+  local output_band=$(($(vipsheader -f bands "$output") - 1))
+  vips extract_band "$input" "$tmpdir/v_alpha_in.v" "$input_band"
+  vips extract_band "$output" "$tmpdir/v_alpha_out.v" "$output_band"
+  awk "BEGIN { exit !($(vips avg "$tmpdir/v_alpha_in.v") == $(vips avg "$tmpdir/v_alpha_out.v")) }"
+}
+
 # cmyk_fidelity <input> <output> - CMYK output must keep the colors of the
 # input CMYK image, only the watermark luminance delta may shift pixels
 cmyk_fidelity()
@@ -185,6 +195,10 @@ if command -v vips >/dev/null 2>&1; then
   vips colourspace base8.png lab.tif lab
   vips colourspace base8.png xyz.tif xyz
   vips colourspace base8.png linear.v scrgb
+  vips black alpha.v 512 512
+  vips linear alpha.v alpha128.v 0 128
+  vips bandjoin "lab.tif alpha128.v" laba.v
+  vips bandjoin "xyz.tif alpha128.v" xyza.v
   vips copy rgba8.png four-band.v --interpretation multiband
 fi
 
@@ -209,6 +223,8 @@ if command -v vips >/dev/null 2>&1; then
   "$IMAGEWMARK" add f32a.tif out_f32a.png "$WATERMARK"     # float+alpha to 8-bit PNG
   "$IMAGEWMARK" add lab.tif out_lab.png "$WATERMARK"
   "$IMAGEWMARK" add xyz.tif out_xyz.png "$WATERMARK"
+  "$IMAGEWMARK" add laba.v out_laba.png "$WATERMARK"
+  "$IMAGEWMARK" add xyza.v out_xyza.png "$WATERMARK"
   "$IMAGEWMARK" add linear.v out_linear.tif "$WATERMARK"
 fi
 
@@ -261,6 +277,10 @@ if command -v vips >/dev/null 2>&1; then
   check 'Lab colors preserved' vips_fidelity lab.tif out_lab.png 0.05
   check 'XYZ output is sRGB' colorspace_grep out_xyz.png srgb
   check 'XYZ colors preserved' vips_fidelity xyz.tif out_xyz.png 0.05
+  check 'LabA output is RGBA' channels_grep out_laba.png srgba
+  check 'LabA alpha preserved' vips_alpha_cmp laba.v out_laba.png
+  check 'XYZA output is RGBA' channels_grep out_xyza.png srgba
+  check 'XYZA alpha preserved' vips_alpha_cmp xyza.v out_xyza.png
   check 'linear RGB output is sRGB' colorspace_grep out_linear.tif srgb
   check 'linear RGB output stays float' depth_is out_linear.tif 32
   check 'linear RGB colors preserved' vips_fidelity linear.v out_linear.tif 0.05

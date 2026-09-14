@@ -512,6 +512,7 @@ struct HostImage {
   VImage img;                                    // greyscale, RGB or CMYK channels
   VImage alpha;                                  // split-off alpha channel
   bool has_alpha = false;                        // true if alpha was split off
+  double alpha_max = 255;
   VipsBandFormat format = VIPS_FORMAT_UCHAR;     // native pixel format of img
   VipsInterpretation interpretation = VIPS_INTERPRETATION_sRGB; // colorspace of img
 };
@@ -528,6 +529,11 @@ load_host_image (const std::string &path)
   HostImage result;
   result.format = host.format();
   result.interpretation = host.interpretation();
+  if (result.interpretation == VIPS_INTERPRETATION_LAB || result.interpretation == VIPS_INTERPRETATION_XYZ ||
+      result.interpretation == VIPS_INTERPRETATION_scRGB)
+    result.alpha_max = vips_interpretation_max_alpha (result.interpretation);
+  else
+    result.alpha_max = 255.0 / format_scale (result.format);
   // Split off the alpha channel (kept in native format, rejoined untouched)
   if (host.bands() == 5 && host.has_alpha()) {
     result.has_alpha = true;
@@ -705,7 +711,8 @@ command_add (const AddOptions &opt)
     // Convert the alpha band along with the image if the output pixel format
     // differs from its native format (e.g. float input saved as 8-bit PNG)
     if (alpha.format() != out_format)
-      alpha = round_pixels (image_to_canonical (alpha), out_format, alpha.interpretation());
+      alpha = round_pixels (alpha.cast (VIPS_FORMAT_FLOAT) * (255.0 / loaded.alpha_max),
+                            out_format, alpha.interpretation());
     watermarked = VImage::bandjoin ({ watermarked, alpha });
   }
 
