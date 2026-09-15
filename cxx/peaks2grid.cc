@@ -55,9 +55,7 @@
 
 #include "minsearch.hh"
 
-#ifdef HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
-#endif
 
 using std::string;
 using std::vector;
@@ -437,7 +435,6 @@ class PerspectiveGridModel : public GridModel
   vector<double>
   matrix_for_vec (const vector<double>& vec)
   {
-#if HAVE_OPENCV
     vector<cv::Point2f> grid_coords {
       { 0, 0 },
       { 1, 0 },
@@ -457,10 +454,6 @@ class PerspectiveGridModel : public GridModel
       mat.at<double> (2, 0), mat.at<double> (2, 1)
     };
     return matrix;
-#else
-    fprintf (stderr, "peaks2grid: need opencv support to build perspective grids\n");
-    exit (1);
-#endif
   }
 
   Vec2d
