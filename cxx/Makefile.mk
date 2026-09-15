@@ -73,6 +73,8 @@ ALL_TARGETS += cxx/wmops
 # == cxx/peaks2grid ==
 cxx/peaks2grid.sources := cxx/peaks2grid.cc
 cxx/peaks2grid.objects := $(cxx/peaks2grid.sources:.cc=.o)
+cxx/peaks2grid.cc.FLAGS := $(cxx/opencv4.cflags)
+cxx/peaks2grid.LIBS     := $(cxx/opencv4.libs)
 cxx/peaks2grid: $(cxx/peaks2grid.objects)
 	$(QGEN)
 	$Q $(LINK) $(cxx/peaks2grid.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
