@@ -117,6 +117,21 @@ cxx/check-add--cxx-768: .version imagewmark cxx/peaks2grid cxx/cornersync
 	$Q ./imagewmark get $@.wm.png --json $@.json
 	$Q grep -qE '\b$(src/watermark)\b' $@.json || \
 		{ echo "$@.png: failed to detect watermark" >&2 ; false ; }
+	$Q set -Ee ; tmpdir=$$(mktemp -d) ; \
+		trap 'rm -rf "$$tmpdir"' EXIT ; \
+		printf 'sentinel\n' > "$$tmpdir/out.png" ; \
+		! ./cxx/imagewmark add "$$tmpdir/missing" "$$tmpdir/out.png" $(src/watermark) >/dev/null 2>&1 ; \
+		grep -qx sentinel "$$tmpdir/out.png" ; \
+		printf 'invalid image\n' > "$$tmpdir/invalid" ; \
+		! ./cxx/imagewmark add "$$tmpdir/invalid" "$$tmpdir/out.png" $(src/watermark) >/dev/null 2>&1 ; \
+		grep -qx sentinel "$$tmpdir/out.png" ; \
+		chmod 640 $@.png ; \
+		./cxx/imagewmark add $@.png "$$tmpdir/out.png" $(src/watermark) ; \
+		test "$$(stat -c %a "$$tmpdir/out.png")" = 640 ; \
+		mkdir "$$tmpdir/dir.png" ; \
+		! ./cxx/imagewmark add $@.png "$$tmpdir/dir.png" $(src/watermark) >/dev/null 2>&1 ; \
+		test -d "$$tmpdir/dir.png" ; \
+		test -z "$$(find "$$tmpdir" -name '*.imagewmark-*' -print -quit)"
 	$Q rm $@.png $@.wm.png $@.json
 	$Q echo '  OK      ' $@
 .PHONY: cxx/check-add--cxx-768
