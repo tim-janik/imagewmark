@@ -101,8 +101,10 @@ def rescale_peaks (S2j, W_est, args):
   del S2j_uni
   dprint ("S2_uni:", S2_uni.shape, S2_uni.min(), '...', S2_uni.max())
   if 'peaks' in args.dump:
-    imageio.imwrite ('S2_uni.png', S2_uni)
-    imageio.imwrite ('S2_uniζ.png', maxi (S2_uni, 20))
+    def to_uint8 (S):
+      return np.clip (S * 255, 0, 255).astype (np.uint8)
+    imageio.imwrite ('S2_uni.png', to_uint8 (S2_uni))
+    imageio.imwrite ('S2_uniζ.png', to_uint8 (maxi (S2_uni, 20)))
   if config.will_plot ('Peaks'):
     show (W_est=W_est, S2jζ=maxi(S2j), O_denom=O_denom, S2_uniζ=maxi(S2_uni))
   return S2_uni
