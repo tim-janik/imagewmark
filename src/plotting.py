@@ -9,6 +9,14 @@ import matplotlib.patches as Patches
 def maxi (img, size = 8):
   return scipy.ndimage.maximum_filter (img, size = size)
 
+# Maximize window
+def maximize_plt_window():
+  mng = plt.get_current_fig_manager()
+  if hasattr (mng.window, "showMaximized"): # Qt backend
+    mng.window.showMaximized()
+  else:
+    mng.resize (*mng.window.maxsize())
+
 # Display a list of grey images
 show_fullscreen = { 'fullscreen': True }
 def show (title = '', cfg = show_fullscreen, **images):
@@ -24,8 +32,7 @@ def show (title = '', cfg = show_fullscreen, **images):
   if title:
     fig.suptitle (title, fontsize=16)
   if cfg.get ('fullscreen', 0):
-    mng = plt.get_current_fig_manager()
-    mng.resize (*mng.window.maxsize())
+    maximize_plt_window()
   if n == 1:
     axl = [ axs ]
   else:
@@ -45,8 +52,7 @@ def polyanimation (title, img, polygons, color = '#f0f', clear = False, keypress
   if config.will_plot_name:
     fig.canvas.manager.set_window_title (config.will_plot_name)
   if 1:
-    mng = plt.get_current_fig_manager()
-    mng.resize (*mng.window.maxsize())
+    maximize_plt_window()
   ax = fig.add_subplot(111)
   ax.set_title (title)
   ax.imshow (img, cmap = plt.cm.gray)
