@@ -502,7 +502,7 @@ find_subpixel_center_offset (const Mat& W_est, const Mat& wmasked_up, float best
   /* upsample score function values */
   int scaled_samples = 201;
   Mat ss_up;
-  resize (ss, ss_up, Size (scaled_samples, scaled_samples), INTER_CUBIC);
+  resize (ss, ss_up, Size (scaled_samples, scaled_samples), 0, 0, INTER_CUBIC);
 
   /* blur: this removes noise and low pass filters the upsampled score function */
   int blur = 41;
