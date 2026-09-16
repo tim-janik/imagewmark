@@ -14,6 +14,8 @@ def maximize_plt_window():
   mng = plt.get_current_fig_manager()
   if hasattr (mng.window, "showMaximized"): # Qt backend
     mng.window.showMaximized()
+  elif hasattr (mng.window, "Maximize"):    # WX backend
+    mng.window.Maximize (True)
   else:
     mng.resize (*mng.window.maxsize())
 
