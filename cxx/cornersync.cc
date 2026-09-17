@@ -269,9 +269,12 @@ normalize_blocks_mscn (const Mat& mat)
           /* normalize block variance/std to 1 */
           float var = sum_squares / block_size / block_size;
           float std = sqrt (var);
-          for (int y = 0; y < block_size; y++)
-            for (int x = 0; x < block_size; x++)
-              norm_mat.at<float> (by * block_size + y, bx * block_size + x) /= std;
+          if (std != 0) // only normalize non-constant blocks, constant blocks are zero at this point
+            {
+              for (int y = 0; y < block_size; y++)
+                for (int x = 0; x < block_size; x++)
+                  norm_mat.at<float> (by * block_size + y, bx * block_size + x) /= std;
+            }
         }
     }
   return norm_mat;
@@ -469,6 +472,10 @@ find_best_zoom (const Mat& W_est, const Mat& wmasked_up, float center_x, float c
         }
     }
 
+  // no positive score means there is no usable synchronization
+  if (best_units <= 0)
+    return std::make_tuple (0.f, 0);
+
   float best_zoom = std::min (W_est.rows, W_est.cols) / 128. / best_units;
   avg_sync_score /= avg_sync_score_n;
   if (verbose)
@@ -548,6 +555,8 @@ main (int argc, char **argv)
 
   // find best zoom level
   auto [ best_zoom, best_orientation ] = find_best_zoom (W_est, wmasked_up, center_x, center_y, verbose);
+  if (best_zoom == 0)
+    return 0;         // empty stdout output means no match
 
   // find best subpixel offset
   auto [ best_dx, best_dy ] = find_subpixel_center_offset (W_est, wmasked_up, best_zoom, best_orientation, center_x, center_y);
