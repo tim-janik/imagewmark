@@ -245,13 +245,15 @@ normalize_blocks_mscn (const Mat& mat)
       for (int bx = 0; bx < payload_dim; bx++)
         {
           /* compute block mean */
-          float sum = 0;
+          // Float accumulation can round the mean of a constant block.
+          // Accumulate in double precision so constant blocks subtract to zero.
+          double sum = 0;
           for (int y = 0; y < block_size; y++)
             for (int x = 0; x < block_size; x++)
               {
                 sum += norm_mat.at<float> (by * block_size + y, bx * block_size + x);
               }
-          float mean = sum / block_size / block_size;
+          double mean = sum / block_size / block_size;
           /* subtract block mean */
           for (int y = 0; y < block_size; y++)
             for (int x = 0; x < block_size; x++)
@@ -259,16 +261,16 @@ normalize_blocks_mscn (const Mat& mat)
                 norm_mat.at<float> (by * block_size + y, bx * block_size + x) -= mean;
               }
           /* compute block sum of squares */
-          float sum_squares = 0;
+          double sum_squares = 0;
           for (int y = 0; y < block_size; y++)
             for (int x = 0; x < block_size; x++)
               {
-                float value = norm_mat.at<float> (by * block_size + y, bx * block_size + x);
+                double value = norm_mat.at<float> (by * block_size + y, bx * block_size + x);
                 sum_squares += value * value;
               }
           /* normalize block variance/std to 1 */
-          float var = sum_squares / block_size / block_size;
-          float std = sqrt (var);
+          double var = sum_squares / block_size / block_size;
+          double std = sqrt (var);
           if (std != 0) // only normalize non-constant blocks, constant blocks are zero at this point
             {
               for (int y = 0; y < block_size; y++)
