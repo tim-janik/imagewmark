@@ -118,6 +118,8 @@ def find_peaks (S2_uni, S2j, window):
   S2M_std = np.std (S2M_uni)                      # standard deviation of S´ - "σ²_S´"
   dprint ("S2M_std:", S2M_std.shape, S2M_std.min(), '...', S2M_std.max())
   S2M_var = S2M_std ** 2                          # global variance of S´ - "σ²_S´"
+  if S2M_var == 0:                                # a constant map has no peaks
+    return [], np.zeros (S2_uni.shape, dtype = bool)
   # S2M_var = common.local_variance (S2M_uni, S2M_uni.shape) # global variance of S´ - "σ²_S´"
   # dprint ("S2M_var:", S2M_var.shape, S2M_var.min(), '...', S2M_var.max())
   β = 4.3                                         # 3.0 … 4.3
@@ -267,7 +269,11 @@ def corner_sync (W_est, wmasked, conv_decoder):
   proc = subprocess.Popen (cornersync_args, stdin = subprocess.PIPE, stdout = subprocess.PIPE)
   send_array (proc, W_est.astype (np.float32))
   send_array (proc, wmasked_up.astype (np.float32))
-  lines = proc.communicate()[0].decode('utf-8')
+  output = proc.communicate()[0]
+  if proc.returncode:
+    raise RuntimeError ("cornersync failed with exit status %d" % proc.returncode)
+  lines = output.decode ('utf-8')
+  result = []
   for line in lines.splitlines():
     l = line.strip().split()
     if (l[0] == "corner_sync"):
@@ -293,8 +299,8 @@ def corner_sync (W_est, wmasked, conv_decoder):
             grid_full.units += [ ((ux, uy), corners) ]
       grid_inside.features['regularity'] = 4
       grid_full.features['regularity'] = 4
+      result = [[ grid_inside, grid_full ]]
 
-  result = [[ grid_inside, grid_full ]]
   common.clocksecs_add ('cornersync', clocksecs)
   return result
 
