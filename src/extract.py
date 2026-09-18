@@ -269,7 +269,10 @@ def corner_sync (W_est, wmasked, conv_decoder):
   proc = subprocess.Popen (cornersync_args, stdin = subprocess.PIPE, stdout = subprocess.PIPE)
   send_array (proc, W_est.astype (np.float32))
   send_array (proc, wmasked_up.astype (np.float32))
-  lines = proc.communicate()[0].decode('utf-8')
+  output = proc.communicate()[0]
+  if proc.returncode:
+    raise RuntimeError ("cornersync failed with exit status %d" % proc.returncode)
+  lines = output.decode ('utf-8')
   result = []
   for line in lines.splitlines():
     l = line.strip().split()
