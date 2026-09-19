@@ -8,6 +8,7 @@ Run `make -j3 tests/check-flat-images` to schedule the three cases in parallel
 Run `python3 tests/check-flat-images.py` for all cases sequentially, or append
 `FlatImageTest.test_black` (also test_gray, test_white) to select one case.
 Set IMAGEWMARK to test an installed executable.
+Successful runs are silent; Make prints the OK line. Failures print diagnostics.
 
 The cases are black 4x4, gray 512x512 and white 1x1. Using cornersync=auto
 exercises both synchronization paths on these no-match images with only three
@@ -19,11 +20,13 @@ Only the public CLI is invoked; no imagewmark modules or helpers are imported
 or called directly. Fixtures and JSON validation use the Python standard library.
 """
 
+import io
 import json
 import math
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -116,4 +119,9 @@ class FlatImageTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    output = io.StringIO()
+    runner = unittest.TextTestRunner(stream=output)
+    program = unittest.main(testRunner=runner, exit=False)
+    if not program.result.wasSuccessful():
+        sys.stderr.write(output.getvalue())
+        sys.exit(1)
