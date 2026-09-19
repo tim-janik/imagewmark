@@ -130,6 +130,14 @@ tests/formats/check: imagewmark tests/formats/check-formats.sh
 check: tests/formats/check
 
 # == check ==
+FLAT_IMAGE_CHECKS := $(addprefix tests/check-flat-images-,black gray white)
+$(FLAT_IMAGE_CHECKS): tests/check-flat-images-%: .version imagewmark cxx/wmops cxx/peaks2grid cxx/cornersync tests/check-flat-images.py
+	$Q python3 tests/check-flat-images.py FlatImageTest.test_$*
+	$(QOK)
+tests/check-flat-images: $(FLAT_IMAGE_CHECKS)
+.PHONY: tests/check-flat-images $(FLAT_IMAGE_CHECKS)
+check: tests/check-flat-images
+
 check: check-syntax
 .PHONY: check
 
