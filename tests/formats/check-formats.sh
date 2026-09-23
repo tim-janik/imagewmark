@@ -122,6 +122,12 @@ vips_fidelity()
   awk "BEGIN { exit !($(rmse "$tmpdir/v_ref.png" "$tmpdir/v_out.png") < $3) }"
 }
 
+profile_removed()
+{
+  vipsheader -a "$1" | grep -q 'icc-profile-data:' &&
+    ! vipsheader -a "$2" | grep -q 'icc-profile-data:'
+}
+
 # decodes <file> - watermark must still be decodable
 decodes()
 {
@@ -168,6 +174,9 @@ if command -v vips >/dev/null 2>&1; then
   vips cast rgba16a.tif f32a.v float && vips linear f32a.v f32a.tif 0.00001525902189669642 0
   vips colourspace base8.png lab.tif lab
   vips colourspace base8.png xyz.tif xyz
+  printf 'stale profile' > stale.icc
+  vips LabS2LabQ lab.tif labq.v
+  vips tiffsave labq.v labq.tif --profile stale.icc
 fi
 
 # == 2. watermark every fixture ==
@@ -191,6 +200,7 @@ if command -v vips >/dev/null 2>&1; then
   "$IMAGEWMARK" add f32a.tif out_f32a.png "$WATERMARK"     # float+alpha to 8-bit PNG
   "$IMAGEWMARK" add lab.tif out_lab.png "$WATERMARK"
   "$IMAGEWMARK" add xyz.tif out_xyz.png "$WATERMARK"
+  "$IMAGEWMARK" add labq.tif out_labq.png "$WATERMARK"
 fi
 
 # == 3. pixel format, colorspace and alpha checks ==
@@ -228,13 +238,13 @@ check_opt vips 'CMYKA to PNG colors preserved' vips_fidelity cmyka.tif out_cmyka
 check 'CMYKA 16-bit TIFF keeps 5 channels'  channels_grep out_cmyka16.tif 'cmyka'
 check 'alpha preserved (CMYKA 16-bit)'      alpha_cmp cmyka16.tif out_cmyka16.tif
 check_opt vips 'scRGB output converts to 8-bit'      depth_is out_f32.tif 8
-check_opt vips 'scRGB output is sRGB'                channels_grep out_f32.tif 'srgb'
+check_opt vips 'float output keeps 3 channels'      channels_grep out_f32.tif 'srgb'
 check_opt vips 'scRGB colors preserved'              vips_fidelity f32.tif out_f32.tif 0.05
-check_opt vips 'scRGBA output keeps 4 channels'     channels_grep out_f32a.tif 'srgba'
-check_opt vips 'alpha preserved (scRGBA)'           alpha_cmp f32a.tif out_f32a.tif
-check_opt vips 'scRGB to PNG output is 8-bit'       depth_is out_f32.png 8
-check_opt vips 'scRGBA to PNG output is 8-bit'      depth_is out_f32a.png 8
-check_opt vips 'alpha preserved (scRGBA to PNG)'    alpha_cmp f32a.tif out_f32a.png
+check_opt vips 'float+alpha output keeps 4 channels' channels_grep out_f32a.tif 'srgba'
+check_opt vips 'alpha preserved (float+alpha)'      alpha_cmp f32a.tif out_f32a.tif
+check_opt vips 'float to PNG output is 8-bit'       depth_is out_f32.png 8
+check_opt vips 'float+alpha to PNG output is 8-bit' depth_is out_f32a.png 8
+check_opt vips 'alpha preserved (float+alpha to PNG)' alpha_cmp f32a.tif out_f32a.png
 check_opt exiftool 'EXIF metadata preserved (JPEG)' exiftool_grep out_exif.jpg -Artist 'imagewmark-artist'
 check_opt exiftool 'EXIF metadata preserved (PNG)'  exiftool_grep out_exif.png -Artist 'imagewmark-artist'
 if command -v vips >/dev/null 2>&1; then
@@ -242,6 +252,7 @@ if command -v vips >/dev/null 2>&1; then
   check 'Lab colors preserved' vips_fidelity lab.tif out_lab.png 0.05
   check 'XYZ output is sRGB' colorspace_grep out_xyz.png srgb
   check 'XYZ colors preserved' vips_fidelity xyz.tif out_xyz.png 0.05
+  check 'LabQ conversion drops stale ICC profile' profile_removed labq.tif out_labq.png
 fi
 
 # == 4. watermark decodability ==
@@ -258,7 +269,7 @@ check 'watermark decodes (CMYK PNG)'           decodes out_cmyk.png
 check 'watermark decodes (CMYKA PNG)'          decodes out_cmyka.png
 check 'watermark decodes (16-bit RGB JPEG)'    decodes out_rgba16.jpg
 check 'watermark decodes (EXIF JPEG)'          decodes out_exif.jpg
-check_opt vips 'watermark decodes (scRGB to PNG)' decodes out_f32.png
+check_opt vips 'watermark decodes (float to PNG)' decodes out_f32.png
 check_opt vips 'watermark decodes (Lab to PNG)' decodes out_lab.png
 check_opt vips 'watermark decodes (XYZ to PNG)' decodes out_xyz.png
 
