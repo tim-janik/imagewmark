@@ -474,14 +474,11 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
   }
   const std::filesystem::path output_path (path);
   const std::filesystem::path directory = output_path.has_parent_path() ? output_path.parent_path() : ".";
-  std::string tmp_template = (directory / ".imagewmark-XXXXXX").string();
-  std::vector<char> tmp_buffer (tmp_template.begin(), tmp_template.end());
-  tmp_buffer.push_back ('\0');
-  const int fd = g_mkstemp_full (tmp_buffer.data(), O_RDWR | O_CLOEXEC, 0600);
+  std::string tmp_path = (directory / ".imagewmark-XXXXXX").string();
+  const int fd = g_mkstemp_full (tmp_path.data(), O_RDWR | O_CLOEXEC, 0600);
   if (fd < 0)
-    throw std::system_error (errno, std::generic_category(), tmp_template);
+    throw std::system_error (errno, std::generic_category(), tmp_path);
   close (fd);
-  const std::string tmp_path = tmp_buffer.data();
   try {
     const std::string suffix = output_path.extension();
     img.write_to_target (suffix.c_str(), vips::VTarget::new_to_file (tmp_path.c_str()), save_opts);

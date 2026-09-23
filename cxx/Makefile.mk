@@ -130,6 +130,9 @@ cxx/check-add--cxx-768: .version imagewmark cxx/peaks2grid cxx/cornersync
 		chmod 640 $@.png ; \
 		./cxx/imagewmark add $@.png "$$tmpdir/out.png" $(src/watermark) ; \
 		test "$$(stat -c %a "$$tmpdir/out.png")" = 640 ; \
+		long_name=$$(printf '%0250d' 0).png ; \
+		./cxx/imagewmark add $@.png "$$tmpdir/$$long_name" $(src/watermark) ; \
+		test -f "$$tmpdir/$$long_name" ; \
 		mkdir "$$tmpdir/dir.png" ; \
 		! ./cxx/imagewmark add $@.png "$$tmpdir/dir.png" $(src/watermark) >/dev/null 2>&1 ; \
 		test -d "$$tmpdir/dir.png" ; \
