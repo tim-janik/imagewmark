@@ -31,9 +31,8 @@ using std::regex_match;
 static void
 gcrypt_init()
 {
-  static bool init_ok = false;
-
-  if (!init_ok)
+  struct InitOnce {
+    InitOnce()
     {
       /* version check: start libgcrypt initialization */
       if (!gcry_check_version (GCRYPT_VERSION))
@@ -44,9 +43,9 @@ gcrypt_init()
 
       /* tell libgcrypt that initialization has completed */
       gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-
-      init_ok = true;
     }
+  };
+  static InitOnce init_once;  // enforce thread safe initialization once
 }
 
 
