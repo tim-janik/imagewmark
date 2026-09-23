@@ -10,6 +10,7 @@
 #include <random>
 
 using std::vector;
+using std::array;
 using std::min;
 using std::string;
 
@@ -88,17 +89,13 @@ conv_decode_soft (const vector<float>& coded_bits, const vector<int>& puncture_p
 
   assert (coded_bits.size() % rate == 0);
 
-  struct StateEntry
-  {
-    int   last_state;
-    float delta;
-    int   bit;
-  };
-  vector<vector<StateEntry>> error_count;
-  for (size_t i = 0; i < coded_bits.size() + rate; i += rate) /* 1 extra element */
-    error_count.emplace_back (state_count, StateEntry {0, -1, 0});
+  vector<array<unsigned char, state_count>> traceback_bits;
+  traceback_bits.resize (coded_bits.size() / rate + 1); /* 1 extra element */
 
-  error_count[0][0].delta = 0; /* start state */
+  vector<float> old_delta (state_count, -1);
+  vector<float> new_delta (state_count, -1);
+
+  old_delta[0] = 0; /* start state */
 
   /* precompute state -> output bits table */
   vector<float> state2bits;
@@ -113,19 +110,23 @@ conv_decode_soft (const vector<float>& coded_bits, const vector<int>& puncture_p
 
   for (size_t i = 0; i < coded_bits.size(); i += rate)
     {
-      vector<StateEntry>& old_table = error_count[i / rate];
-      vector<StateEntry>& new_table = error_count[i / rate + 1];
+      if (i)
+        {
+          old_delta.swap (new_delta);
+          std::fill (new_delta.begin(), new_delta.end(), -1);
+        }
+      array<unsigned char, state_count>& new_traceback_bits = traceback_bits[i / rate + 1];
 
       for (unsigned int state = 0; state < state_count; state++)
         {
           /* this check enforces that we only consider states reachable from state=0 at time=0*/
-          if (old_table[state].delta >= 0)
+          if (old_delta[state] >= 0)
             {
               for (int bit = 0; bit < 2; bit++)
                 {
                   int   new_state = ((state << 1) | bit) & state_mask;
 
-                  float delta = old_table[state].delta;
+                  float delta = old_delta[state];
                   int   sbit_pos = new_state * rate;
 
                   for (size_t p = 0; p < rate; p++)
@@ -136,12 +137,12 @@ conv_decode_soft (const vector<float>& coded_bits, const vector<int>& puncture_p
                       /* decoding error weight for this bit; if input is only 0.0 and 1.0, this is the hamming distance */
                       delta += (cbit - sbit) * (cbit - sbit) * puncture_pattern_float[i + p];
                     }
-
-                  if (delta < new_table[new_state].delta || new_table[new_state].delta < 0) /* better match with this link? replace entry */
+                  if (delta < new_delta[new_state] || new_delta[new_state] < 0) /* better match with this link? replace entry */
                     {
-                      new_table[new_state].delta      = delta;
-                      new_table[new_state].last_state = state;
-                      new_table[new_state].bit        = bit;
+                      const unsigned high_bit = state_count >> 1;
+
+                      new_delta[new_state]          = delta;
+                      new_traceback_bits[new_state] = (state & high_bit) ? 1 : 0;
                     }
                 }
             }
@@ -155,13 +156,15 @@ conv_decode_soft (const vector<float>& coded_bits, const vector<int>& puncture_p
       for (auto b : puncture_pattern)
         if (b)
           n_transmitted_bits++;
-      *error_out = error_count.back()[state].delta / n_transmitted_bits;
+      *error_out = new_delta[state] / n_transmitted_bits;
     }
-  for (size_t idx = error_count.size() - 1; idx > 0; idx--)
+  for (size_t idx = traceback_bits.size() - 1; idx > 0; idx--)
     {
-      decoded_bits.push_back (error_count[idx][state].bit);
+      const int bit = state & 1;
+      decoded_bits.push_back (bit);
 
-      state = error_count[idx][state].last_state;
+      const unsigned high_bit = state_count >> 1;
+      state = traceback_bits[idx][state] * high_bit + (state >> 1);
     }
   std::reverse (decoded_bits.begin(), decoded_bits.end());
 
