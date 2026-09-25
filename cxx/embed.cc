@@ -542,8 +542,14 @@ static HostImage
 load_host_image (const std::string &path)
 {
   VImage host = VImage::new_from_file (path.c_str());
-  if (host.coding() != VIPS_CODING_NONE) // e.g. LabQ
+  const VipsInterpretation interpretation = host.interpretation();
+  if (host.coding() != VIPS_CODING_NONE ||
+      (interpretation != VIPS_INTERPRETATION_B_W && interpretation != VIPS_INTERPRETATION_GREY16 &&
+       interpretation != VIPS_INTERPRETATION_RGB && interpretation != VIPS_INTERPRETATION_RGB16 &&
+       interpretation != VIPS_INTERPRETATION_sRGB && interpretation != VIPS_INTERPRETATION_CMYK)) {
     host = host.colourspace (VIPS_INTERPRETATION_sRGB);
+    host.remove ("icc-profile-data");
+  }
   HostImage result;
   result.format = host.format();
   result.interpretation = host.interpretation();
