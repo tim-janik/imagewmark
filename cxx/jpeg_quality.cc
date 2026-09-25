@@ -44,9 +44,12 @@ estimate_jpeg_quality (const char *path, int fallback)
   if (!f)
     return fallback;
   const size_t n = f.tellg();
+  if (n < 2)
+    return fallback;
   f.seekg (0);
   std::vector<uint8_t> b (n);
-  f.read (reinterpret_cast<char*> (b.data()), n);
+  if (!f.read (reinterpret_cast<char*> (b.data()), n))
+    return fallback;
 
   // Must be a JPEG file: SOI marker 0xFFD8 at offset 0.
   // Avoids false positives on J2K, PNG, etc. where random bytes match DQT.
@@ -59,21 +62,42 @@ estimate_jpeg_quality (const char *path, int fallback)
   //   marker 0xFFDB, big-endian length (including the 2 length bytes),
   //   then one or more tables: precision nibble (Pt=0 → 8-bit, Pt=1 → 16-bit),
   //   table ID nibble, followed by 64 coefficients in zigzag order.
-  std::array<int16_t, 64> qt;
+  std::array<uint16_t, 64> qt;
   bool found = false;
-  for (size_t i = 0; i + 4 < n;) {                                      // OOB guard for marker scan
-    if (d[i] != 0xFF || d[i + 1] != 0xDB) {
+  for (size_t i = 2; i + 3 < n;) {                                      // OOB guard for marker scan
+    if (d[i] != 0xFF) {
       i += 1;
       continue;
     }
+    const uint8_t marker = d[i + 1];
+    if (marker == 0xD9)                                                  // EOI ends image
+      break;
+    if (marker == 0x00 || marker == 0xFF) {                             // skip stuffed bytes and marker fill
+      i += 1;
+      continue;
+    }
+    if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD8)) {         // standalone markers
+      i += 2;
+      continue;
+    }
     // big-endian segment length, as per spec §B.1.1.2
-    size_t len = (d[i + 2] << 8) | d[i + 3], off = i + 4;
-    while (off < i + 2 + len) {                                         // stay within DQT segment
+    const size_t len = (d[i + 2] << 8) | d[i + 3];
+    if (len < 2 || len > n - i - 2)
+      return fallback;
+    const size_t segment_end = i + 2 + len;
+    if (marker != 0xDB) {
+      i = segment_end;                                                  // skip marker payloads
+      continue;
+    }
+    size_t off = i + 4;
+    while (off < segment_end) {                                         // stay within DQT segment
       int pt_id = d[off++];
       int prec = pt_id >> 4;
       int table_id = pt_id & 0x0f;
+      if (prec > 1)                                                     // precision must be 0 or 1
+        return fallback;
       const size_t need = 64 * (1 + prec);
-      if (off + need > i + 2 + len)
+      if (off + need > segment_end)
         break;                                                          // truncated table, skip
       if (table_id == 0) {                                              // luma, last one wins
         for (int k = 0; k < 64; ++k) {
@@ -84,7 +108,7 @@ estimate_jpeg_quality (const char *path, int fallback)
       } else
         off += need;                                                    // skip non-luma tables
     }
-    i = i + 2 + len;
+    i = segment_end;
   }
   if (!found)
     return fallback;                                                    // no luma DQT found
