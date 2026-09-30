@@ -240,6 +240,7 @@ check_opt vips 'float+alpha to PNG output is 8-bit' depth_is out_f32a.png 8
 check_opt vips 'alpha preserved (float+alpha to PNG)' alpha_cmp f32a.tif out_f32a.png
 check_opt exiftool 'EXIF metadata preserved (JPEG)' exiftool_grep out_exif.jpg -Artist 'imagewmark-artist'
 check_opt exiftool 'EXIF metadata preserved (PNG)'  exiftool_grep out_exif.png -Artist 'imagewmark-artist'
+check 'metadata matches system libvips' python3 "$SELFDIR/check-metadata.py"
 
 # == 4. watermark decodability ==
 # get/OpenCV cannot read 5-channel CMYK TIFFs nor 32-bit float TIFFs, so CMYKA

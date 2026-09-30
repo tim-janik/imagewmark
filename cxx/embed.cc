@@ -710,16 +710,26 @@ command_add (const AddOptions &opt)
   save_host_image (watermarked, opt.output_img, opt.input_img);
 }
 
-// Silence some of VIPS's warnings.
+// Suppress warnings for metadata the saver drops or pads.
 static void
 silence_libvips_warnings (const gchar *log_domain, GLogLevelFlags log_level,
                            const gchar *message, gpointer /*user_data*/)
 {
   // Silence VIPS's "large XMP not saved" warning. JPEG APP1 segments are limited to 65533 bytes (ISO/IEC 10918-1
   // §B.1.1.2). XMP > ~64KB requires extended-packet splitting (XMP Spec Part 3), which VIPS does not implement.
-  if ((log_level & G_LOG_LEVEL_WARNING) && g_strcmp0 (log_domain, "VIPS") == 0 &&
-      g_str_has_prefix (message, "VipsJpeg: large XMP not saved"))
-    return; // skip this warning
+  // The same marker limit applies to oversized EXIF and IPTC data.
+  if ((log_level & G_LOG_LEVEL_WARNING) && g_strcmp0 (log_domain, "VIPS") == 0) {
+    const char *warnings[] = {
+      "VipsJpeg: large XMP not saved",
+      "large XMP not saved",
+      "field \"exif-data\" is too large for a single JPEG marker, ignoring",
+      "field \"iptc-data\" is too large for a single JPEG marker, ignoring",
+      "rounding up IPTC data length",
+    };
+    for (const char *warning : warnings)
+      if (g_strcmp0 (message, warning) == 0)
+        return;
+  }
   g_log_default_handler (log_domain, log_level, message, nullptr);
 }
 
