@@ -122,7 +122,7 @@ check-syntax:
 
 # == check-formats ==
 # Verify pixel format, alpha, CMYK and metadata handling of "imagewmark add"
-tests/formats/check: imagewmark tests/formats/check-formats.sh
+tests/formats/check: imagewmark tests/formats/check-formats.sh tests/formats/check-metadata.py
 	$(QCHECK)
 	$Q tests/formats/check-formats.sh
 	$(QOK)
