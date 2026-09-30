@@ -11,7 +11,7 @@
 #
 # Usage: tests/formats/check-formats.sh
 # Dependencies: ImageMagick (convert, identify, compare) and imagewmark are
-# required, vips and exiftool are optional (their checks are skipped).
+# required, vips, exiftool and python3 are optional (their checks are skipped).
 set -Eeuo pipefail
 
 test "${1-}" == -x && { shift ; set -x ; }
@@ -55,16 +55,18 @@ check()
   fi
 }
 
-# check_opt <command> <name> <args...> - like check(), but skipped when <command> is unavailable
+# check_opt <cmd[,cmd...]> <name> <args...> - like check(), but skipped when a <cmd> is unavailable
 check_opt()
 {
-  local dep="$1" name="$2"; shift 2
-  if command -v "$dep" >/dev/null 2>&1; then
-    check "$name" "$@"
-  else
-    checks=$((checks + 1))
-    echo "  SKIP    $name (no $dep)"
-  fi
+  local deps="$1" name="$2" dep; shift 2
+  for dep in ${deps//,/ }; do
+    command -v "$dep" >/dev/null 2>&1 || {
+      checks=$((checks + 1))
+      echo "  SKIP    $name (no $dep)"
+      return
+    }
+  done
+  check "$name" "$@"
 }
 
 # normalized RMSE of two images, see: compare -metric RMSE
@@ -240,7 +242,7 @@ check_opt vips 'float+alpha to PNG output is 8-bit' depth_is out_f32a.png 8
 check_opt vips 'alpha preserved (float+alpha to PNG)' alpha_cmp f32a.tif out_f32a.png
 check_opt exiftool 'EXIF metadata preserved (JPEG)' exiftool_grep out_exif.jpg -Artist 'imagewmark-artist'
 check_opt exiftool 'EXIF metadata preserved (PNG)'  exiftool_grep out_exif.png -Artist 'imagewmark-artist'
-check 'metadata matches system libvips' python3 "$SELFDIR/check-metadata.py"
+check_opt python3,vips,exiftool 'metadata matches system libvips' python3 "$SELFDIR/check-metadata.py"
 
 # == 4. watermark decodability ==
 # get/OpenCV cannot read 5-channel CMYK TIFFs nor 32-bit float TIFFs, so CMYKA
