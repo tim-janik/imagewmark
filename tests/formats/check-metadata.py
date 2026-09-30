@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 
+import io
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -146,4 +148,7 @@ class MetadataTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    stream = io.StringIO()
+    result = unittest.TextTestRunner(stream).run(unittest.defaultTestLoader.loadTestsFromTestCase(MetadataTest))
+    if not result.wasSuccessful():
+        sys.exit(stream.getvalue())

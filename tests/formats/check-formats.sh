@@ -11,7 +11,8 @@
 #
 # Usage: tests/formats/check-formats.sh
 # Dependencies: ImageMagick (convert, identify, compare) and imagewmark are
-# required, vips and exiftool are optional (their checks are skipped).
+# required. The metadata check requires python3, vips and exiftool, other
+# vips and exiftool checks are skipped if these are missing.
 set -Eeuo pipefail
 
 test "${1-}" == -x && { shift ; set -x ; }
