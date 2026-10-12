@@ -2,10 +2,15 @@
 all:	# default target
 
 SHELL		:= /bin/bash -o pipefail
-version_full	!= src/version.sh
-VERSION		:= $(word 1, $(version_full))
+version_info	!= grep -xm1 '^v\?[0-9][^$$]*' .version || git archive HEAD .version | tar -xOf -
+TAG		:= $(word 1, $(version_info))
+version_date	:= $(wordlist 2, 4, $(version_info))
+VERSION		:= $(patsubst v%,%,$(TAG))
 version_bits	:= $(subst _, , $(subst -, , $(subst ., , $(VERSION))))
 PKGVERSION	:= $(word 1, $(version_bits)).$(word 2, $(version_bits))
+ifeq ($(and $(word 3, $(version_bits)),$(word 4, $(version_info))),)
+$(error Missing version information, need git describe or .version)
+endif
 ALL_TARGETS	:=
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
@@ -15,7 +20,7 @@ QCHECK		 = $(QECHO) CHECK $@
 QOK		 = $(QECHO) OK $@
 PANDOC		:= pandoc
 CLEANDIRS	:=
-CLEANFILES	 = $(ALL_TARGETS) .version
+CLEANFILES	 = $(ALL_TARGETS)
 
 # == Paths ==
 # Installation locations
@@ -25,12 +30,9 @@ LIBEXEC	?= libexec/imagewmark-$(PKGVERSION)
 PRJDIR	?= $(PREFIX)/$(LIBEXEC)
 
 # == Versioning ==
-# Force .version to be kept up to date
-.version: ; $(QGEN) && src/version.sh > $@
-ALL_TARGETS += .version
-ifneq ($(version_full),$(shell test ! -r .version || cat .version))
-.PHONY: .version
-endif
+version:
+	@echo "$(VERSION)  $(version_date)"
+.PHONY: version
 
 # == Subdir Makefiles ==
 include src/Makefile.mk
@@ -47,7 +49,8 @@ ALL_TARGETS += imagewmark
 install:
 	$(QGEN)
 	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc $(PREFIX)/share/man/man1
-	cp -Pp imagewmark .version $(PRJDIR)
+	cp -Pp imagewmark $(PRJDIR)
+	echo '$(version_info)' > $(PRJDIR)/.version
 	cp -Pp src/*.py $(PRJDIR)/src
 	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark cxx/wmops $(PRJDIR)/cxx
 	cp -Pp doc/imagewmark.1 doc/imagewmark-arch.html $(PRJDIR)/doc

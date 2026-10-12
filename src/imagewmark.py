@@ -11,7 +11,13 @@ BASE_DIR = Path (__file__).resolve().parent
 import sys
 sys.path.insert (0, str (BASE_DIR / '../src'))
 
-__version__ = open (str (BASE_DIR / "../.version")).read().strip()
+__version__ = (BASE_DIR.parent / '.version').read_text().strip()
+if __version__.startswith ('$Format:'):
+  import io, subprocess, tarfile
+  version_tar = subprocess.check_output (['git', '-C', str (BASE_DIR.parent), 'archive', 'HEAD', '.version'])
+  with tarfile.open (fileobj = io.BytesIO (version_tar)) as version_archive:
+    __version__ = version_archive.extractfile ('.version').read().decode().strip()
+__version__ = __version__.removeprefix ('v')
 
 import argparse
 import embed, extract

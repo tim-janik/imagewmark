@@ -18,7 +18,7 @@ jobs:
     - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0, submodules: recursive } }
     - run: git fetch -f --tags          # Fix actions/checkout#290
     - run: |
-        src/version.sh
+        make version
         git describe --always --long
     - run: make -j`nproc`
     - run: |

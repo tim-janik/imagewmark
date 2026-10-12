@@ -18,7 +18,6 @@ x*
 *.so
 *.lib
 *.dll
-.version
 /artifacts/
 /BACKLOG.md
 /check*
