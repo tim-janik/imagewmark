@@ -80,10 +80,8 @@ installcheck:
 
 # == distcheck ==
 distcheck:
-	@$(eval distversion != git describe --match='v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//')
-	@$(eval distname := imagewmark-$(distversion))
+	$(eval distname := imagewmark-$(VERSION))
 	$(QECHO) MAKE $(distname).tar.zst
-	$Q test -n "$(distversion)" || { echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" >&2; false; }
 	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
 	$Q rm -r -f artifacts/ && mkdir -p artifacts/
 	$Q # Generate ChangeLog with ^^-prefixed records. Tab-indent commit bodies, kill whitespaces and multi-newlines
@@ -94,16 +92,26 @@ distcheck:
 	$Q # Generate and compress artifacts/*.tar.zst
 	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog -o artifacts/$(distname).tar HEAD
 	$Q zstd --ultra -22 --rm artifacts/$(distname).tar && ls -lh artifacts/$(distname).tar.zst
-	$Q T=`mktemp -d` && cd $$T && tar xf $(abspath artifacts/$(distname).tar.zst) \
-	&& cd $(distname) \
-	&& nice make all -j`nproc` \
-	&& make PREFIX=$$T/inst install \
-	&& make PREFIX=$$T/inst installcheck -j`nproc` \
-	&& (set -x && $$T/inst/bin/imagewmark --version) \
-	&& make PREFIX=$$T/inst uninstall \
-	&& (set -x && $$PWD/imagewmark --version) \
-	&& cd / && rm -r "$$T"
-	$Q echo "Archive ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
+	$(QECHO) CHECK $(distname).tar.zst
+	$Q T=$$(mktemp --tmpdir -d imagewmark-distcheck-XXXXXXXX) \
+	&& trap 'rm -rf "$$T"' EXIT \
+	&& tar xf artifacts/$(distname).tar.zst -C $$T \
+	&& cd $$T/$(distname) \
+	&& $(MAKE) all -j$$(nproc) \
+	&& $(MAKE) check -j$$(nproc) \
+	&& test "$$(./imagewmark --version)" = "ImageWMark $(patsubst v%,%,$(version_info))" \
+	&& $(MAKE) PREFIX=$$T/inst install \
+	&& $(MAKE) PREFIX=$$T/inst installcheck \
+	&& test "$$($$T/inst/bin/imagewmark --version)" = "ImageWMark $(patsubst v%,%,$(version_info))" \
+	&& $(MAKE) PREFIX=$$T/inst uninstall \
+	&& test ! -e $$T/inst/bin/imagewmark \
+	&& test ! -e $$T/inst/$(LIBEXEC) \
+	&& gzip -9c doc/imagewmark.1 > $(CURDIR)/artifacts/imagewmark.1.gz \
+	&& cp -p doc/imagewmark-arch.html $(CURDIR)/artifacts/
+	$Q cd artifacts/ \
+	&& sha256sum $(distname).tar.zst ChangeLog imagewmark.1.gz imagewmark-arch.html > $(distname).SHA256SUMS \
+	&& sha256sum -c $(distname).SHA256SUMS
+	$Q echo "Distcheck ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
 CLEANDIRS += artifacts/
 .PHONY: distcheck
 
