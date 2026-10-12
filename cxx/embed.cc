@@ -472,6 +472,10 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
     // save_opts->set ("trellis_quant", true);
     // save_opts->set ("overshoot_deringing", true);
   }
+  else if (string_endswith (out_lower, ".tif") || string_endswith (out_lower, ".tiff")) {
+    // Deflate is lossless and faster than LZW in libtiff, libvips saves uncompressed by default
+    save_opts->set ("compression", VIPS_FOREIGN_TIFF_COMPRESSION_DEFLATE);
+  }
   const std::filesystem::path output_path (path);
   const std::filesystem::path directory = output_path.has_parent_path() ? output_path.parent_path() : ".";
   std::string tmp_path = (directory / ".imagewmark-XXXXXX").string();

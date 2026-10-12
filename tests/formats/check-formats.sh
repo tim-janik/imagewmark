@@ -96,6 +96,12 @@ depth_is()
   [ "$($IMIDENTIFY -quiet -format "%z" "$1" 2>/dev/null)" == "$2" ]
 }
 
+# compression_is <file> <compression> - ImageMagick compression type must match, e.g. Zip
+compression_is()
+{
+  [ "$($IMIDENTIFY -quiet -format "%C" "$1" 2>/dev/null)" == "$2" ]
+}
+
 # alpha_cmp <input> <output> - alpha channels must be bit-exact; both alpha
 # extractions are normalized to 16-bit so cross depth comparisons work
 alpha_cmp()
@@ -221,6 +227,7 @@ check_opt vips 'CMYK to PNG colors preserved' vips_fidelity cmyk.jpg out_cmyk.pn
 check '16-bit CMYK output stays 16-bit'     depth_is out_cmyk16.tif 16
 check 'CMYK stays CMYK (16-bit)'            colorspace_grep out_cmyk16.tif 'cmyk'
 check 'CMYK colors preserved (16-bit)'      cmyk_fidelity cmyk16.tif out_cmyk16.tif
+check 'TIFF output is Deflate compressed'   compression_is out_cmyk16.tif Zip
 check '16-bit CMYK to JPEG is 8-bit CMYK'   colorspace_grep out_cmyk16.jpg 'cmyk'
 check '16-bit CMYK JPEG output is 8-bit'    depth_is out_cmyk16.jpg 8
 check 'CMYKA TIFF keeps 5 channels'         channels_grep out_cmyka.tif 'cmyka'
