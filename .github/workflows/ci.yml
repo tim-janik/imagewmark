@@ -2,6 +2,8 @@
 
 # Linting: xclip -sel c <.github/workflows/ci.yml # https://rhysd.github.io/actionlint/
 
+name: CI
+
 on:
   push:
     branches: ['trunk', 'wip/**']
@@ -9,27 +11,23 @@ on:
   pull_request:
     branches: ['trunk', 'wip/**']  # Only run PRs targeting these branches
 
+permissions: { contents: read }
+
+env: { DOCKER_IMAGE: 'ghcr.io/tim-janik/imagewmark-ci:alpine-latest' }
+
 jobs:
 
   Alpine-CI:
     runs-on: ubuntu-latest
-    container: { image: 'ghcr.io/tim-janik/imagewmark-ci:alpine-latest', options: --user runner }
     steps:
-    - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0, submodules: recursive } }
-    - run: git fetch -f --tags          # Fix actions/checkout#290
+    - { uses: actions/checkout@v7, with: { fetch-depth: 0, fetch-tags: true, submodules: recursive } }
+    - run: git fetch --force --tags     # Fix actions/checkout#290
     - run: |
-        make version
-        git describe --always --long
-    - run: make -j`nproc`
-    - run: |
-        make -j`nproc` check
-    - run: |
-        make PREFIX=$HOME install
-        make PREFIX=$HOME installcheck
-        make PREFIX=$HOME uninstall
-    - run: |
-        make PREFIX=$HOME distcheck
-    - { uses: actions/upload-artifact@v4, with: { name: imagewmark-snapshot, path: 'imagewmark-*.tar.zst' } }
+        docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:$PWD" --workdir "$PWD" \
+          --env TZ=UTC --env LC_ALL=C "$DOCKER_IMAGE" make -w distcheck
+    - { uses: actions/upload-artifact@v7, with: { name: imagewmark-Artifacts, path: artifacts/ } }
+    - run: .github/workflows/release-test.sh
+      if: github.ref_type != 'tag'
 
   Ping-IRC:
     # Always run, announce tag and trunk pushes only
