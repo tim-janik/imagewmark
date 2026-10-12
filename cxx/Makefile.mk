@@ -49,15 +49,21 @@ compilecxxflags = $(CXXFLAGS) $(EXTRA_FLAGS) $($<.FLAGS) $($@.FLAGS) -MQ $@ -MMD
 	$Q $(CCACHE) $(CXX) $(CXXSTD) $(compiledefs) $(compilecxxflags) -o $@ -c $<
 CLEANFILES += cxx/*.o cxx/*.o.d cxx/*.map
 
+cxx/version_deps != test -e .git && git rev-parse --git-path HEAD --git-path logs/HEAD --git-path refs/tags --git-path packed-refs  || true
+cxx/version.o: .version cxx/version.hh cxx/Makefile.mk $(wildcard $(cxx/version_deps))
+	$(QECHO) CXX $@
+	$Q printf '#include "version.hh"\nconst char imagewmark_version[] = "%s";\n' '$(patsubst v%,%,$(version_info))' \
+	  | $(CXX) $(CXXSTD) $(compiledefs) $(CXXFLAGS) $(EXTRA_FLAGS) -I cxx -x c++ -c -o $@ -
+
 # == cxx/imagewmark (add only) ==
 cxx/imagewmark.sources := cxx/imagewmark-add.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx/embed.cc cxx/jpeg_quality.cc
 cxx/imagewmark.objects := $(cxx/imagewmark.sources:.cc=.o)
 cxx/imagewmark.LIBS    := $(cxx/libvips.libs)
 $(cxx/imagewmark.objects): $(CXXDEPS)
 cxx/embed.cc.FLAGS     := $(cxx/libvips.cflags)
-cxx/imagewmark: $(cxx/imagewmark.objects)
+cxx/imagewmark: $(cxx/imagewmark.objects) cxx/version.o
 	$(QGEN)
-	$Q $(LINK) $(cxx/imagewmark.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+	$Q $(LINK) cxx/version.o $(cxx/imagewmark.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
 ALL_TARGETS += cxx/imagewmark
 
 # == cxx/wmops (get and helpers) ==
@@ -65,9 +71,9 @@ cxx/wmops.sources := cxx/wmops.cc cxx/utils.cc cxx/random.cc cxx/convcode.cc cxx
 cxx/wmops.objects := $(cxx/wmops.sources:.cc=.o)
 cxx/wmops.LIBS    := $(cxx/opencv4.libs)
 $(cxx/wmops.objects): $(CXXDEPS)
-cxx/wmops: $(cxx/wmops.objects)
+cxx/wmops: $(cxx/wmops.objects) cxx/version.o
 	$(QGEN)
-	$Q $(LINK) $(cxx/wmops.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+	$Q $(LINK) cxx/version.o $(cxx/wmops.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
 ALL_TARGETS += cxx/wmops
 
 # == cxx/peaks2grid ==
@@ -75,9 +81,9 @@ cxx/peaks2grid.sources := cxx/peaks2grid.cc
 cxx/peaks2grid.objects := $(cxx/peaks2grid.sources:.cc=.o)
 cxx/peaks2grid.cc.FLAGS := $(cxx/opencv4.cflags)
 cxx/peaks2grid.LIBS     := $(cxx/opencv4.libs)
-cxx/peaks2grid: $(cxx/peaks2grid.objects)
+cxx/peaks2grid: $(cxx/peaks2grid.objects) cxx/version.o
 	$(QGEN)
-	$Q $(LINK) $(cxx/peaks2grid.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+	$Q $(LINK) cxx/version.o $(cxx/peaks2grid.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
 ALL_TARGETS += cxx/peaks2grid
 
 # == cxx/cornersync ==
@@ -85,9 +91,9 @@ cxx/cornersync.sources := cxx/cornersync.cc
 cxx/cornersync.objects := $(cxx/cornersync.sources:.cc=.o)
 cxx/cornersync.cc.FLAGS := $(cxx/opencv4.cflags)
 cxx/cornersync.LIBS     := $(cxx/opencv4.libs)
-cxx/cornersync: $(cxx/cornersync.objects)
+cxx/cornersync: $(cxx/cornersync.objects) cxx/version.o
 	$(QGEN)
-	$Q $(LINK) $(cxx/cornersync.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
+	$Q $(LINK) cxx/version.o $(cxx/cornersync.objects) $(LDLIBS) $($@.LIBS) -o $@ -Wl,--print-map >$@.map
 ALL_TARGETS += cxx/cornersync
 
 # == Tests ==

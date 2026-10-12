@@ -54,6 +54,7 @@
 #include <poll.h>
 
 #include "minsearch.hh"
+#include "version.hh"
 
 #include <opencv2/imgproc.hpp>
 
@@ -625,8 +626,10 @@ read_stop()
 }
 
 int
-main()
+main (int argc, char *argv[])
 {
+  if (print_version (argc, argv, "peaks2grid"))
+    return 0;
   int width = 0;
   int height = 0;
   int perspective = 0;

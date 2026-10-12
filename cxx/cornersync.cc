@@ -40,6 +40,7 @@
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <sys/time.h>
+#include "version.hh"
 
 using namespace cv;
 using std::vector;
@@ -539,6 +540,8 @@ find_subpixel_center_offset (const Mat& W_est, const Mat& wmasked_up, float best
 int
 main (int argc, char **argv)
 {
+  if (print_version (argc, argv, "cornersync"))
+    return 0;
   double start_time = get_time();
 
   bool verbose = (argc == 2) && (strcmp (argv[1], "verbose") == 0);
