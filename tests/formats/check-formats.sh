@@ -126,8 +126,8 @@ vips_fidelity()
 
 profile_removed()
 {
-  vipsheader -a "$1" | grep -q 'icc-profile-data:' &&
-    ! vipsheader -a "$2" | grep -q 'icc-profile-data:'
+  vipsheader -f icc-profile-data "$1" >/dev/null &&
+    ! vipsheader -f icc-profile-data "$2" >/dev/null 2>&1
 }
 
 # decodes <file> - watermark must still be decodable
@@ -177,8 +177,7 @@ if command -v vips >/dev/null 2>&1; then
   vips colourspace base8.png lab.tif lab
   vips colourspace base8.png xyz.tif xyz
   printf 'stale profile' > stale.icc
-  vips LabS2LabQ lab.tif labq.v
-  vips tiffsave labq.v labq.tif --profile stale.icc
+  vips LabS2LabQ lab.tif 'labq.tif[profile=stale.icc]'
 fi
 
 # == 2. watermark every fixture ==
@@ -250,13 +249,11 @@ check_opt vips 'alpha preserved (float+alpha to PNG)' alpha_cmp f32a.tif out_f32
 check_opt exiftool 'EXIF metadata preserved (JPEG)' exiftool_grep out_exif.jpg -Artist 'imagewmark-artist'
 check_opt exiftool 'EXIF metadata preserved (PNG)'  exiftool_grep out_exif.png -Artist 'imagewmark-artist'
 check_opt python3,vips,exiftool 'metadata matches system libvips' python3 "$SELFDIR/check-metadata.py"
-if command -v vips >/dev/null 2>&1; then
-  check 'Lab output is sRGB' colorspace_grep out_lab.png srgb
-  check 'Lab colors preserved' vips_fidelity lab.tif out_lab.png 0.05
-  check 'XYZ output is sRGB' colorspace_grep out_xyz.png srgb
-  check 'XYZ colors preserved' vips_fidelity xyz.tif out_xyz.png 0.05
-  check 'LabQ conversion drops stale ICC profile' profile_removed labq.tif out_labq.png
-fi
+check_opt vips 'Lab output is sRGB' colorspace_grep out_lab.png srgb
+check_opt vips 'Lab colors preserved' vips_fidelity lab.tif out_lab.png 0.05
+check_opt vips 'XYZ output is sRGB' colorspace_grep out_xyz.png srgb
+check_opt vips 'XYZ colors preserved' vips_fidelity xyz.tif out_xyz.png 0.05
+check_opt vips,vipsheader 'LabQ conversion drops stale ICC profile' profile_removed labq.tif out_labq.png
 
 # == 4. watermark decodability ==
 # get/OpenCV cannot read 5-channel CMYK TIFFs, so CMYKA decodability is
