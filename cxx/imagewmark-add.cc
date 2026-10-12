@@ -1,6 +1,7 @@
 // Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 #include "imagewmark.hh"
 #include "random.hh"
+#include "version.hh"
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
@@ -62,6 +63,8 @@ int
 main (int argc, char *argv[])
 {
   argv0 = argv[0]; // used for error handling
+  if (print_version (argc, argv, "ImageWMark"))
+    return 0;
 
   // --- Delegate Commands ---
   if (!is_add_command (argc, argv))

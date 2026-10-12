@@ -3,6 +3,7 @@
 #include "random.hh"
 #include "convcode.hh"
 #include "jpeg_quality.hh"
+#include "version.hh"
 #include <sys/stat.h>
 #include <stdio.h>
 
@@ -14,6 +15,8 @@ int
 main (int argc, char *argv[])
 {
   argv0 = argv[0]; // used for error handling
+  if (print_version (argc, argv, "wmops"))
+    return 0;
 
   CLI::App app { "wmops - Watermark operation helper" };
   app.ignore_case(); // Allow case-insensitive subcommands (e.g., GEN-KEY vs gen-key)

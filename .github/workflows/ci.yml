@@ -2,44 +2,55 @@
 
 # Linting: xclip -sel c <.github/workflows/ci.yml # https://rhysd.github.io/actionlint/
 
+name: CI
+
 on:
   push:
     branches: ['trunk', 'wip/**']
-    tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
+    tags: [ 'v[0-9]*.[0-9]*' ]
   pull_request:
     branches: ['trunk', 'wip/**']  # Only run PRs targeting these branches
+
+permissions: { contents: read }
+
+env: { DOCKER_IMAGE: 'ghcr.io/tim-janik/imagewmark-ci:alpine-latest' }
 
 jobs:
 
   Alpine-CI:
     runs-on: ubuntu-latest
-    container: { image: 'ghcr.io/tim-janik/imagewmark-ci:alpine-latest', options: --user runner }
     steps:
-    - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0, submodules: recursive } }
-    - run: git fetch -f --tags          # Fix actions/checkout#290
+    - { uses: actions/checkout@v7, with: { fetch-depth: 0, fetch-tags: true, submodules: recursive } }
+    - run: git fetch --force --tags     # Fix actions/checkout#290
     - run: |
-        src/version.sh
-        git describe --always --long
-    - run: make -j`nproc`
-    - run: |
-        make -j`nproc` check
-    - run: |
-        make PREFIX=$HOME install
-        make PREFIX=$HOME installcheck
-        make PREFIX=$HOME uninstall
-    - run: |
-        make PREFIX=$HOME distcheck
-    - { uses: actions/upload-artifact@v4, with: { name: imagewmark-snapshot, path: 'imagewmark-*.tar.zst' } }
+        docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:$PWD" --workdir "$PWD" \
+          --env TZ=UTC --env LC_ALL=C "$DOCKER_IMAGE" make -w distcheck
+    - { uses: actions/upload-artifact@v7, with: { name: imagewmark-Artifacts, path: artifacts/ } }
+    - run: .github/workflows/release-test.sh
+      if: github.ref_type != 'tag'
+
+  Release:
+    if: github.ref_type == 'tag'
+    needs: [ Alpine-CI ]
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    env: { GH_TOKEN: '${{ github.token }}' }
+    steps:
+    - { uses: actions/checkout@v7, with: { fetch-depth: 0, fetch-tags: true } }
+    - run: git fetch --force --tags     # Fix actions/checkout#290
+    - run: .github/workflows/gh-release.sh --docker --upload
 
   Ping-IRC:
-    # Always run, announce tag and trunk pushes only
-    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/trunk' || github.ref_type == 'tag') }}
+    # Announce tag and trunk pushes unless cancelled
+    if: ${{ !cancelled() && github.event_name == 'push' && (github.ref == 'refs/heads/trunk' || github.ref_type == 'tag') }}
     runs-on: ubuntu-latest
-    needs: [ Alpine-CI ]
+    needs: [ Alpine-CI, Release ]
     steps:
-    - { uses: actions/checkout@v4.1.1, with: { fetch-depth: 0 } }
-    - run: git fetch -f --tags          # Fix actions/checkout#290
+    - { uses: actions/checkout@v7, with: { fetch-depth: 0 } }
+    - run: git fetch --force --tags     # Fix actions/checkout#290
+    - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/workflows -p test_ircbot.py -v
     - name: Ping-IRC
-      if: ${{ always() && !env.ACT }}  # IRCBOT_JOBS indicates 'success'
+      continue-on-error: true
+      if: ${{ !env.ACT }}  # IRCBOT_JOBS indicates 'success'
       env: { IRCBOT_JOBS: "${{ join(needs.*.result, ' ') }}" }
       run: .github/workflows/ircbot.py -s irc.libera.chat:6697 -G "#Anklang"

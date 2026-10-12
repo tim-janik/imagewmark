@@ -2,10 +2,15 @@
 all:	# default target
 
 SHELL		:= /bin/bash -o pipefail
-version_full	!= src/version.sh
-VERSION		:= $(word 1, $(version_full))
+version_info	!= grep -xm1 '^v\?[0-9][^$$]*' .version || git archive HEAD .version | tar -xOf -
+TAG		:= $(word 1, $(version_info))
+version_date	:= $(wordlist 2, 4, $(version_info))
+VERSION		:= $(patsubst v%,%,$(TAG))
 version_bits	:= $(subst _, , $(subst -, , $(subst ., , $(VERSION))))
 PKGVERSION	:= $(word 1, $(version_bits)).$(word 2, $(version_bits))
+ifeq ($(and $(word 3, $(version_bits)),$(word 4, $(version_info))),)
+$(error Missing version information, need git describe or .version)
+endif
 ALL_TARGETS	:=
 Q		:= $(if $(findstring 1, $(V)),, @)
 QGEN		 = @echo '  GEN     ' $@
@@ -15,7 +20,7 @@ QCHECK		 = $(QECHO) CHECK $@
 QOK		 = $(QECHO) OK $@
 PANDOC		:= pandoc
 CLEANDIRS	:=
-CLEANFILES	 = $(ALL_TARGETS) .version
+CLEANFILES	 = $(ALL_TARGETS)
 
 # == Paths ==
 # Installation locations
@@ -25,12 +30,9 @@ LIBEXEC	?= libexec/imagewmark-$(PKGVERSION)
 PRJDIR	?= $(PREFIX)/$(LIBEXEC)
 
 # == Versioning ==
-# Force .version to be kept up to date
-.version: ; $(QGEN) && src/version.sh > $@
-ALL_TARGETS += .version
-ifneq ($(version_full),$(shell test ! -r .version || cat .version))
-.PHONY: .version
-endif
+version:
+	@echo "$(VERSION)  $(version_date)"
+.PHONY: version
 
 # == Subdir Makefiles ==
 include src/Makefile.mk
@@ -47,7 +49,8 @@ ALL_TARGETS += imagewmark
 install:
 	$(QGEN)
 	mkdir -p $(BINDIR) $(PRJDIR) $(PRJDIR)/src $(PRJDIR)/cxx $(PRJDIR)/doc $(PREFIX)/share/man/man1
-	cp -Pp imagewmark .version $(PRJDIR)
+	cp -Pp imagewmark $(PRJDIR)
+	echo '$(version_info)' > $(PRJDIR)/.version
 	cp -Pp src/*.py $(PRJDIR)/src
 	cp -Pp cxx/cornersync cxx/peaks2grid cxx/imagewmark cxx/wmops $(PRJDIR)/cxx
 	cp -Pp doc/imagewmark.1 doc/imagewmark-arch.html $(PRJDIR)/doc
@@ -77,10 +80,8 @@ installcheck:
 
 # == distcheck ==
 distcheck:
-	@$(eval distversion != git describe --match='v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//')
-	@$(eval distname := imagewmark-$(distversion))
+	$(eval distname := imagewmark-$(VERSION))
 	$(QECHO) MAKE $(distname).tar.zst
-	$Q test -n "$(distversion)" || { echo -e "#\n# $@: ERROR: no dist version, is git working?\n#" >&2; false; }
 	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
 	$Q rm -r -f artifacts/ && mkdir -p artifacts/
 	$Q # Generate ChangeLog with ^^-prefixed records. Tab-indent commit bodies, kill whitespaces and multi-newlines
@@ -91,16 +92,26 @@ distcheck:
 	$Q # Generate and compress artifacts/*.tar.zst
 	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog -o artifacts/$(distname).tar HEAD
 	$Q zstd --ultra -22 --rm artifacts/$(distname).tar && ls -lh artifacts/$(distname).tar.zst
-	$Q T=`mktemp -d` && cd $$T && tar xf $(abspath artifacts/$(distname).tar.zst) \
-	&& cd $(distname) \
-	&& nice make all -j`nproc` \
-	&& make PREFIX=$$T/inst install \
-	&& make PREFIX=$$T/inst installcheck -j`nproc` \
-	&& (set -x && $$T/inst/bin/imagewmark --version) \
-	&& make PREFIX=$$T/inst uninstall \
-	&& (set -x && $$PWD/imagewmark --version) \
-	&& cd / && rm -r "$$T"
-	$Q echo "Archive ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
+	$(QECHO) CHECK $(distname).tar.zst
+	$Q T=$$(mktemp --tmpdir -d imagewmark-distcheck-XXXXXXXX) \
+	&& trap 'rm -rf "$$T"' EXIT \
+	&& tar xf artifacts/$(distname).tar.zst -C $$T \
+	&& cd $$T/$(distname) \
+	&& $(MAKE) all -j$$(nproc) \
+	&& $(MAKE) check -j$$(nproc) \
+	&& test "$$(./imagewmark --version)" = "ImageWMark $(patsubst v%,%,$(version_info))" \
+	&& $(MAKE) PREFIX=$$T/inst install \
+	&& $(MAKE) PREFIX=$$T/inst installcheck \
+	&& test "$$($$T/inst/bin/imagewmark --version)" = "ImageWMark $(patsubst v%,%,$(version_info))" \
+	&& $(MAKE) PREFIX=$$T/inst uninstall \
+	&& test ! -e $$T/inst/bin/imagewmark \
+	&& test ! -e $$T/inst/$(LIBEXEC) \
+	&& gzip -9c doc/imagewmark.1 > $(CURDIR)/artifacts/imagewmark.1.gz \
+	&& cp -p doc/imagewmark-arch.html $(CURDIR)/artifacts/
+	$Q cd artifacts/ \
+	&& sha256sum $(distname).tar.zst ChangeLog imagewmark.1.gz imagewmark-arch.html > $(distname).SHA256SUMS \
+	&& sha256sum -c $(distname).SHA256SUMS
+	$Q echo "Distcheck ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
 CLEANDIRS += artifacts/
 .PHONY: distcheck
 
