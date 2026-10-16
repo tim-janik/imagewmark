@@ -1,4 +1,4 @@
-## Imagewmark NEXT:
+## Imagewmark NEXT
 
 ### Added:
 * Added `results.txt` generation to test suite, listing best JSD scores per extraction
@@ -17,7 +17,7 @@
 * Removed `flat.txt` and `fails.txt` report generation from test Makefile
 
 
-## Imagewmark 0.6.0:
+## Imagewmark 0.6.0
 
 ### Added:
 * Documentation and example updates
@@ -78,7 +78,7 @@ For full details, see the commit history:
 	https://github.com/tim-janik/imagewmark/compare/v0.5.0...v0.6.0
 
 
-## Imagewmark 0.5.0:
+## Imagewmark 0.5.0
 
 ### Added:
 * Added the --cornersync=<on|off|auto> option to control the corner sync algorithm during extraction
@@ -127,7 +127,7 @@ Thanks to everyone who made this release happen!
 For full details, see the [commit history](https://github.com/tim-janik/imagewmark/commits/v0.5.0)
 
 
-## Imagewmark 0.4.0:
+## Imagewmark 0.4.0
 
 * Improved documentation in various places.
 * Enhanced test reporting with additional columns, titles, and sorting.
@@ -153,7 +153,7 @@ For full details, see the [commit history](https://github.com/tim-janik/imagewma
 * Improved peaks2grid for better handling of images with extreme aspect ratios.
 
 
-## Imagewmark 0.3.0:
+## Imagewmark 0.3.0
 
 * Change strength computation for less visible (less robust) watermarks.
 * Improved handling of greyscale images and images in CMYK (tiff format).
@@ -182,7 +182,7 @@ For full details, see the [commit history](https://github.com/tim-janik/imagewma
 * Adjusted the Dockerfile to enable fully self contained builds and test runs.
 
 
-## Imagewmark 0.2.0:
+## Imagewmark 0.2.0
 
 * Significantly improved robustness and detection speed.
 * Reduced memory consumptions for extraction by an order of magnitude.
@@ -197,7 +197,7 @@ For full details, see the [commit history](https://github.com/tim-janik/imagewma
 * Allow dumping of intermediate 'peaks' stage.
 
 
-## Imagewmark 0.1.0:
+## Imagewmark 0.1.0
 
 * Milestone 1 reached.
 * Proof of concept embedding and extraction works, based on:
