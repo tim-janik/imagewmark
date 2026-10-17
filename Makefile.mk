@@ -5,9 +5,9 @@ SHELL		:= /bin/bash -o pipefail
 version_info	!= grep -xm1 '^v\?[0-9][^$$]*' .version || git archive HEAD .version | tar -xOf -
 TAG		:= $(word 1, $(version_info))
 version_date	:= $(wordlist 2, 4, $(version_info))
-VERSION		:= $(patsubst v%,%,$(TAG))
-version_bits	:= $(subst _, , $(subst -, , $(subst ., , $(VERSION))))
-PKGVERSION	:= $(word 1, $(version_bits)).$(word 2, $(version_bits))
+version		 = $(patsubst v%,%,$(TAG))
+version_bits	 = $(subst _, , $(subst -, , $(subst ., , $(version))))
+PKGVERSION	 = $(word 1, $(version_bits)).$(word 2, $(version_bits))
 ifeq ($(and $(word 3, $(version_bits)),$(word 4, $(version_info))),)
 $(error Missing version information, need git describe or .version)
 endif
@@ -31,7 +31,7 @@ PRJDIR	?= $(PREFIX)/$(LIBEXEC)
 
 # == Versioning ==
 version:
-	@echo "$(VERSION)  $(version_date)"
+	@echo "$(version)  $(version_date)"
 .PHONY: version
 
 # == Subdir Makefiles ==
@@ -78,20 +78,31 @@ installcheck:
 	$Q cd $(TDIR) && $(INSTALLED_IMAGEWMARK) get --cornersync=off iwmtest01wm.png >wm-nc.out && fgrep -q 1234abcd00 wm-nc.out
 	$Q rm -r $(TDIR)
 
-# == distcheck ==
-distcheck:
-	$(eval distname := imagewmark-$(VERSION))
+# == dist ==
+# DIST_VERSION overrides the release version, e.g. a nightly tag plus -g<hash>; dist bakes it into .version.
+dist:
+	$(eval TAG := $(or $(DIST_VERSION),$(TAG)))
+	$(eval version_info := $(TAG) $(version_date))
+	$(eval distname := imagewmark-$(version))
 	$(QECHO) MAKE $(distname).tar.zst
 	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
-	$Q rm -r -f artifacts/ && mkdir -p artifacts/
+	$Q rm -r -f artifacts/ && mkdir -p artifacts/ && echo '$(version_info)' > artifacts/.version
 	$Q # Generate ChangeLog with ^^-prefixed records. Tab-indent commit bodies, kill whitespaces and multi-newlines
 	$Q git log --abbrev=13 --date=short --first-parent HEAD	\
 		--pretty='^^%ad  %an 	# %h%n%n%B%n'		>  artifacts/ChangeLog \
 	&& sed 's/^/	/; s/^	^^// ; s/[[:space:]]\+$$// '	-i artifacts/ChangeLog \
 	&& sed '/^\s*$$/{ N; /^\s*\n\s*$$/D }'			-i artifacts/ChangeLog
 	$Q # Generate and compress artifacts/*.tar.zst
-	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog -o artifacts/$(distname).tar HEAD
+	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog --add-file artifacts/.version -o artifacts/$(distname).tar HEAD ':!.version'
 	$Q zstd --ultra -22 --rm artifacts/$(distname).tar && ls -lh artifacts/$(distname).tar.zst
+	$Q echo "Archive ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
+CLEANDIRS += artifacts/
+.PHONY: dist
+
+# == distcheck ==
+# Build and test all release files from a fresh source tarball.
+distcheck: dist
+	@$(eval distname := imagewmark-$(version))
 	$(QECHO) CHECK $(distname).tar.zst
 	$Q T=$$(mktemp --tmpdir -d imagewmark-distcheck-XXXXXXXX) \
 	&& trap 'rm -rf "$$T"' EXIT \
@@ -109,10 +120,9 @@ distcheck:
 	&& gzip -9c doc/imagewmark.1 > $(CURDIR)/artifacts/imagewmark.1.gz \
 	&& cp -p doc/imagewmark-arch.html $(CURDIR)/artifacts/
 	$Q cd artifacts/ \
-	&& sha256sum $(distname).tar.zst ChangeLog imagewmark.1.gz imagewmark-arch.html > $(distname).SHA256SUMS \
-	&& sha256sum -c $(distname).SHA256SUMS
+	&& sha256sum $(distname).tar.zst ChangeLog imagewmark.1.gz imagewmark-arch.html > SHA256SUMS \
+	&& sha256sum -c SHA256SUMS
 	$Q echo "Distcheck ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
-CLEANDIRS += artifacts/
 .PHONY: distcheck
 
 # == clean ==
