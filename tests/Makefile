@@ -10,11 +10,13 @@ QGEN		 = @echo '  GEN     ' $@
 QECHO		 = @QECHO() { Q1="$$1"; shift; QR="$$*"; QOUT=$$(printf '  %-8s ' "$$Q1" ; echo "$$QR") && echo "$$QOUT"; }; QECHO
 ATTACK_IMAGES	:=
 RESULT_REPORTS	:=
-__TESTKEY       := $(if $(TESTKEY), --test-key $(TESTKEY) )
+__TESTKEY        = $(if $(TESTKEY), --test-key $(TESTKEY) )
+__STRENGTH       = $(if $(STRENGTH), --strength $(STRENGTH) )
 SRCDIR			?= $(dir $(MAKEFILE))/..
 IMAGEWMARK		?= $(SRCDIR)/imagewmark
 WATERMARK		?= fedcba98765432100123456789abcdef
 SEED			?= 0
+STRENGTH		?=
 WITHOUT_ORIGINAL	?= false
 CORNERSYNC_MODE		?= auto
 
@@ -31,6 +33,7 @@ help:
 	@echo '  make V=1		- Enable verbose output from MAKE and subcommands'
 	@echo '  make IMAGEDIR=..	- Specifc directory with images for testing'
 	@echo '  make SEED=<integer>	- Alter seed for randomized tests'
+	@echo '  make STRENGTH=<float>	- Set watermark strength for imagewmark add'
 
 # == check-nproc ==
 check-nproc:
@@ -63,7 +66,7 @@ WMARKED_IMAGES := $(INPUTS:inputs/%=wmarked/%)
 wmarked/%: inputs/%
 	$(QECHO) ADD $@
 	$Q mkdir -p $(dir $@)
-	$Q $(IMAGEWMARK) add $(__TESTKEY) $< $@.png $(WATERMARK)
+	$Q $(IMAGEWMARK) add $(__TESTKEY) $(__STRENGTH) $< $@.png $(WATERMARK)
 	$Q mv $@.png $@
 .NOTINTERMEDIATE: $(WMARKED_IMAGES)
 
