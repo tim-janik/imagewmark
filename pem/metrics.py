@@ -16,6 +16,7 @@ import logging
 import os
 import sys
 from dataclasses import asdict
+from functools import cache
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -141,9 +142,12 @@ def compute_ssim (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
     (0.70, QUALITY_POOR),   # poor: significant degradation
   ]
 
+  win_size = min (11, min (orig.shape[:2]))
+  if win_size % 2 == 0:
+    win_size -= 1
   raw = round (float (_sk_ssim (
     orig, wm, data_range=255, channel_axis=2,
-    gaussian_weights=True, sigma=1.5, use_sample_covariance=False,
+    gaussian_weights=True, sigma=1.5, use_sample_covariance=False, win_size=win_size,
   )), 6)
 
   return MetricResult (raw=raw, unit="", direction=+1, calibrated=round (calibrate (raw, _anchors), 6))
@@ -152,6 +156,12 @@ def compute_ssim (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
 # ---------------------------------------------------------------------------
 # Text Fidelity Loss (L1 on text regions)
 # ---------------------------------------------------------------------------
+
+@cache
+def _get_ocr ():
+  from paddleocr import PaddleOCR
+  return PaddleOCR (use_angle_cls=False, lang="en", show_log=False)
+
 
 def compute_text_fidelity (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
   """Text-region L1 error using PaddleOCR. Returns distance 0.0 if no text.
@@ -171,7 +181,6 @@ def compute_text_fidelity (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
     (40.0, QUALITY_POOR),  # poor: text clearly degraded
   ]
 
-  from paddleocr import PaddleOCR
   # Suppress PaddleOCR C-level output (not caught by Python redirect_stdout)
   sys.stdout.flush()
   sys.stderr.flush()
@@ -180,8 +189,7 @@ def compute_text_fidelity (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
   os.dup2 (devnull.fileno(), 1)
   os.dup2 (devnull.fileno(), 2)
   try:
-    ocr = PaddleOCR (use_angle_cls=False, lang="en")
-    results = ocr.ocr (orig[..., ::-1])  # PaddleOCR models expect BGR
+    results = _get_ocr().ocr (orig[..., ::-1], cls=False)  # PaddleOCR models expect BGR
   finally:
     os.dup2 (old_stdout, 1)
     os.dup2 (old_stderr, 2)
@@ -212,6 +220,8 @@ def compute_tiling_artifact_loss (orig: np.ndarray, wm: np.ndarray, tile_size: i
 
   Distance anchors: excellent <2, good <5, acceptable <10, poor <30
   """
+  if tile_size <= 0:
+    raise ValueError ("tile_size must be positive")
   import cv2
 
   # Ascending (lower=better)
@@ -297,8 +307,7 @@ def compute_butteraugli (orig: np.ndarray, wm: np.ndarray) -> tuple[MetricResult
   Distance anchors (both norms): excellent <1.0 (JND), good <3.0,
   acceptable <6.0, poor <10.0
   """
-  from butteraugli import compute_butteraugli_arrays as _ba_l3
-  from butteraugli import compute_butteraugli_arrays_l2 as _ba_l2
+  from butteraugli import compute_butteraugli_arrays_norms
 
   # Ascending (lower=better, distance metric)
   # POI source: google/butteraugli README + butteraugli_main.cc:430-431:
@@ -313,11 +322,10 @@ def compute_butteraugli (orig: np.ndarray, wm: np.ndarray) -> tuple[MetricResult
     (10.0, QUALITY_POOR),  # poor: very bad (~JPEG q=10)
   ]
 
-  score_l3 = _ba_l3 (orig, wm)
+  score_l3, score_l2 = compute_butteraugli_arrays_norms (orig, wm)
   if score_l3 < 0:
     _na = MetricResult (raw=None, unit="", direction=-1, calibrated=0.0)
     return _na, _na
-  score_l2 = _ba_l2 (orig, wm)
   return (
     MetricResult (
       raw=round (float (score_l3), 4), unit="", direction=-1,
