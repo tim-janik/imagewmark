@@ -1,10 +1,7 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
-"""PEM constants — single source of truth for all thresholds, labels, colors."""
+"""PEM distance thresholds, labels and colors."""
 
 # Quality thresholds applied to the distance (0 = perfect, 1 = at poor threshold).
-# Used by display.py for per-row and combined-score quality judgments.
-# Used by metrics.py as the distance of each anchor point.
-# SINGLE SOURCE OF TRUTH — change here, propagate everywhere.
 QUALITY_EXCELLENT = 0.1
 QUALITY_GOOD = 0.20
 QUALITY_ACCEPTABLE = 0.50

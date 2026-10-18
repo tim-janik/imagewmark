@@ -1,28 +1,5 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
-"""Butteraugli — psychovisual image similarity metric (Google).
-
-Wraps a bundled shared library (libbutteraugli.so) built from Google's
-reference C++ implementation.  The library handles gamma correction,
-opsin mixing, XYB color space, HF/LF masking, and diffmap scoring.
-
-Two norms are available:
-  - 3-norm (default): (mean(diff³))^(1/3) — preferred for watermarking
-  - 2-norm (RMS):     sqrt(mean(diff²)) — best overall CID22 correlation
-
-Array APIs:
-  - compute_butteraugli_arrays_norms(orig_arr, wm_arr) — both norms in one pass
-  - compute_butteraugli_arrays(orig_arr, wm_arr) — pre-loaded arrays (3-norm)
-  - compute_butteraugli_arrays_l2(orig_arr, wm_arr) — pre-loaded arrays (2-norm)
-
-Score interpretation: see the anchors in metrics.compute_butteraugli().
-
-Note: 3-norm is preferred for watermarking because it is more sensitive
-to localized compression-like artifacts than 2-norm while being less
-prone to single-pixel outlier spikes than L∞.  2-norm has slightly better
-overall correlation with human judgments (CID22 MCOS: KRCC -0.6575 vs -0.6547).
-
-Returns -1.0 on error (dimension mismatch, etc.).
-"""
+"""Butteraugli 3-norm and 2-norm for uint8 RGB arrays. See PEM.md."""
 
 import ctypes
 from pathlib import Path

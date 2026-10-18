@@ -1,14 +1,5 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
-"""PEM display — compute combined score + render as rich tables.
-
-Combined score computation lives here (display layer), not in compare.py.
-compare.py outputs raw metrics only; this module computes weights, breakdown,
-and renders the final table.
-
-Single source of truth for quality thresholds: the distance from
-calibrate.py piecewise-linear calibration.  Every metric and the combined
-score use the same quality_label() function on its distance.
-"""
+"""Combine PEM distances and display results as tables."""
 
 import json
 import sys
@@ -46,10 +37,7 @@ METRIC_WEIGHTS = {k: v / _WEIGHTS_SUM for k, v in _WEIGHTS.items()}
 
 
 def compute_combined (metrics: dict) -> dict:
-  """Compute combined perceptual distance from raw metrics dict.
-
-  Skipped metrics are left out, the weights of the others are renormalized.
-  N/A metrics have distance 0.0 and keep their weight."""
+  """Combine distances, excluding skipped metrics and retaining weights for raw=None."""
   entries = [(key, metrics[key]) for key in METRIC_WEIGHTS if metrics.get (key) is not None]
   raw_weight_sum = sum (METRIC_WEIGHTS[key] for key, _ in entries)
   if raw_weight_sum <= 0:
@@ -97,7 +85,6 @@ def display_result (result: dict, verbose: bool = False):
   console = Console()
   metrics = result.get ("metrics", {})
 
-  # Compute combined score (always — this is the display layer)
   combined = compute_combined (metrics)
   inp = result.get ("input", {})
 

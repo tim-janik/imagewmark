@@ -1,16 +1,5 @@
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
-"""Perceptual Evaluation Metrics — core computation functions.
-
-Each metric function returns a structured result:
-  - MetricResult(raw, unit, direction, calibrated) for single-value metrics
-  - a (mse, psnr) and a (3-norm, 2-norm) tuple of MetricResult for MSE/PSNR and Butteraugli
-  - raw=None with distance 0.0 if the metric has no valid output (no text, Butteraugli error)
-
-Anchor points are defined inline per-metric.  The generic calibrate() function
-(calibrate.py) does piecewise-linear interpolation.  Quality thresholds come
-from constants.py — anchors map to:
-  QUALITY_EXCELLENT=excellent, QUALITY_GOOD=good,
-  QUALITY_ACCEPTABLE=acceptable, QUALITY_POOR=poor."""
+"""Compute raw image metrics and calibrate them to perceptual distances."""
 
 import logging
 import os
