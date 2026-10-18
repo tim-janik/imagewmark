@@ -134,9 +134,10 @@ def display_result (result: dict, verbose: bool = False):
     contrib = f"{bd.get('contribution', 0):.6f}" if bd else "0.000000"
 
     display = f"{raw}{unit} {arrow}" if raw is not None else f"N/A {arrow}"
-    q = quality_label (distance)
+    q = quality_label (distance) if bd else "N/A"
     color = _severity_color (q)
-    table.add_row (name, display, f"{distance:.6f}", Text (q, style=color), wt, contrib)
+    dist_text = f"{distance:.6f}" if bd else "skipped"
+    table.add_row (name, display, dist_text, Text (q, style=color), wt, contrib)
 
   # Metrics in display order (keyed by breakdown key)
   _add ("MSE", "mse")
@@ -170,11 +171,11 @@ def display_result (result: dict, verbose: bool = False):
 # ---------------------------------------------------------------------------
 
 def _load_json_result (text):
-  """Parse JSON, stripping any preamble lines before the first '{'."""
+  """Parse a result or batch array, allowing a preamble."""
   lines = text.splitlines()
   start = 0
   for i, line in enumerate (lines):
-    if line.strip().startswith ('{'):
+    if line.strip().startswith (('{', '[')):
       start = i
       break
   return json.loads ('\n'.join (lines[start:]))
@@ -183,15 +184,16 @@ def _load_json_result (text):
 def main ():
   """Standalone entry point: read JSON from files or stdin, display results."""
   files = sys.argv[1:] if len (sys.argv) > 1 else None
-
+  results = []
   if files:
-    results = []
     for fpath in files:
       with open (fpath) as f:
-        results.append (_load_json_result (f.read()))
+        result = _load_json_result (f.read())
+      results.extend (result if isinstance (result, list) else [result])
   else:
     text = sys.stdin.read()
-    results = [_load_json_result (text)]
+    result = _load_json_result (text)
+    results.extend (result if isinstance (result, list) else [result])
 
   for result in results:
     display_result (result)
