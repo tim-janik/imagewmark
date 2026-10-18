@@ -41,6 +41,8 @@ pem/display.sh result.json                           # table from saved JSON
 | `--batch-dir DIR` | Compare `NAME_orig` or `NAME_original` with `NAME_wm` or `NAME_watermarked` images in DIR |
 
 Batch mode warns about unpaired images and exits with 1 if a pair fails.
+With `--json`, it outputs one array of successful results. `display.sh` accepts
+both a single result and a batch array, from files or stdin.
 
 JSON output, one entry per metric:
 

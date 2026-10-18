@@ -95,6 +95,8 @@ def main ():
                        help="Batch mode: compare all matching pairs in a directory")
 
   args = parser.parse_args()
+  if args.tile_size <= 0:
+    parser.error ("--tile-size must be positive")
 
   # ---- Batch mode ----
   if args.batch_dir:
@@ -110,14 +112,21 @@ def main ():
     from tqdm import tqdm
 
     failed = 0
+    results = []
     for orig_p, wm_p in tqdm (pairs, desc="Comparing pairs"):
       try:
-        _output (args, _compute (args, orig_p, wm_p))
+        result = _compute (args, orig_p, wm_p)
+        if args.as_json:
+          results.append (result)
+        else:
+          _output (args, result)
       except SystemExit:
         failed += 1
       except Exception as exc:
         print (f"Error comparing pair ({orig_p}, {wm_p}): {exc}", file=sys.stderr)
         failed += 1
+    if args.as_json:
+      print (json.dumps (results, indent=2))
     return 1 if failed else 0
 
   # ---- Single pair mode ----

@@ -59,6 +59,7 @@ CLEANFILES += libbutteraugli.so .venv.tar.gz.tmp
 check: setup
 	$(QGEN)
 	$Q $(PEM_PYTHON) tests/check-setup.py
+	$Q $(PEM_PYTHON) tests/check-cli.py
 	$Q $(PEM_PYTHON) tests/run_tests.py
 
 clean:
