@@ -1,0 +1,18 @@
+# Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
+[project]
+name = "imagewmark-pem"
+version = "0.1.0"
+description = "Perceptual Evaluation Metrics for imagewmark — measure how visible a watermark is"
+requires-python = ">=3.12,<4"
+dependencies = [
+    "torch",
+    "torchvision",
+    "ssimulacra2>=0.3",
+    "paddlepaddle>=2.6,<3",
+    "paddleocr>=2.7,<3",
+    "numpy",    "Pillow",    "scikit-image>=0.20",
+    "opencv-python-headless",
+    "cvvdp",
+    "rich",
+    "tqdm",
+]

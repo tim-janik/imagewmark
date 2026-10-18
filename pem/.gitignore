@@ -1,0 +1,15 @@
+# Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
+.venv/
+.uv-cache/
+.cache/
+__pycache__/
+*.pyc
+
+# Reference materials & build artifacts
+pico-*
+pico_files/
+plan*.md
+uv.lock
+*.so
+*.o
+*.a
