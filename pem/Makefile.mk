@@ -56,8 +56,14 @@ setup: libbutteraugli.so
 	}
 CLEANFILES += libbutteraugli.so .venv.tar.gz.tmp
 
-check: setup
+tests/check-butteraugli: tests/check-butteraugli.cc $(BUTTERAUGLI_WRAP) $(BUTTERAUGLI_SRC) butteraugli-build/butteraugli/butteraugli.h
 	$(QGEN)
+	$Q g++ -std=c++17 -O2 $(BUTTERAUGLI_INC) $< $(BUTTERAUGLI_SRC) -o $@
+CLEANFILES += tests/check-butteraugli
+
+check: setup tests/check-butteraugli
+	$(QGEN)
+	$Q tests/check-butteraugli
 	$Q $(PEM_PYTHON) tests/check-setup.py
 	$Q $(PEM_PYTHON) tests/check-cli.py
 	$Q $(PEM_PYTHON) tests/run_tests.py

@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -18,7 +19,8 @@ sys.path.insert (0, PEM_DIR)
 from calibrate import calibrate  # noqa: E402
 from constants import quality_label  # noqa: E402
 from display import compute_combined  # noqa: E402
-from metrics import compute_mse_psnr, compute_text_fidelity, compute_tiling_artifact_loss  # noqa: E402
+from metrics import compute_butteraugli  # noqa: E402
+from metrics import _get_ocr, compute_mse_psnr, compute_ssim, compute_text_fidelity, compute_tiling_artifact_loss  # noqa: E402
 
 METRIC_KEYS = {"mse", "psnr", "ms_ssim", "ssimulacra2", "butteraugli_l3", "butteraugli_l2",
                "cvvdp", "text_fidelity_l1", "tiling_artifact"}
@@ -84,11 +86,48 @@ def test_anchor_points ():
 
 def test_text_fidelity ():
   print ("Text fidelity")
-  orig = text_image()
-  r = compute_text_fidelity (orig, orig + 3)
-  check (r.raw == 3.0 and r.calibrated == 0.1, f"text offset 3 -> distance 0.1 (got {r})")
-  r = compute_text_fidelity (photo(), photo() + 3)
-  check (r.raw is None and r.calibrated == 0.0, f"no text -> raw None, distance 0 (got {r})")
+  from paddleocr import PaddleOCR
+  _get_ocr.cache_clear()
+  with mock.patch ("paddleocr.PaddleOCR", wraps=PaddleOCR) as constructor:
+    orig = text_image()
+    r = compute_text_fidelity (orig, orig + 3)
+    check (r.raw == 3.0 and r.calibrated == 0.1, f"text offset 3 -> distance 0.1 (got {r})")
+    r = compute_text_fidelity (photo(), photo() + 3)
+    check (r.raw is None and r.calibrated == 0.0, f"no text -> raw None, distance 0 (got {r})")
+    check (constructor.call_count == 1, "OCR models loaded once for multiple pairs")
+
+
+def test_small_ssim ():
+  print ("SSIM on small images")
+  for h, w in ((1, 1), (1, 10), (2, 2), (4, 4), (10, 10), (11, 11)):
+    orig = photo (h, w)
+    r = compute_ssim (orig, orig)
+    check (r.raw == 1.0 and r.calibrated == 0.0, f"identical {w}x{h} image: SSIM 1")
+    r = compute_ssim (orig, orig + 5)
+    check (r.raw < 1.0 and r.calibrated > 0.0, f"changed {w}x{h} image: positive SSIM distance")
+
+
+def test_invalid_tile_size ():
+  print ("Tiling input validation")
+  for size in (0, -1):
+    try:
+      compute_tiling_artifact_loss (photo(), photo(), tile_size=size)
+    except ValueError:
+      check (True, f"tile size {size} rejected")
+    else:
+      check (False, f"tile size {size} rejected")
+
+
+def test_butteraugli ():
+  print ("Butteraugli paired norms")
+  from butteraugli import _load_library, compute_butteraugli_arrays_norms
+  lib = _load_library()
+  orig = photo()
+  with mock.patch.object (lib, "butteraugli_compare_arrays_norms", wraps=lib.butteraugli_compare_arrays_norms) as compare:
+    l3, l2 = compute_butteraugli (orig, orig + 3)
+    check (compare.call_count == 1, "both Butteraugli norms use one native comparison")
+    check (l3.raw >= l2.raw > 0.0, f"valid norms with L3 >= L2 (got {l3.raw}, {l2.raw})")
+  check (compute_butteraugli_arrays_norms (orig, orig[:-1]) == (-1.0, -1.0), "Butteraugli dimension mismatch rejected")
 
 
 def test_compare_json (tmpdir):
@@ -128,6 +167,9 @@ def test_compare_json (tmpdir):
 def main ():
   test_calibrate()
   test_anchor_points()
+  test_small_ssim()
+  test_invalid_tile_size()
+  test_butteraugli()
   test_text_fidelity()
   with tempfile.TemporaryDirectory() as tmpdir:
     test_compare_json (tmpdir)
