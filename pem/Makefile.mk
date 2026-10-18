@@ -35,7 +35,7 @@ PEM_STANDALONE_URL := https://github.com/indygreg/python-build-standalone/releas
 
 setup: libbutteraugli.so
 	$(QGEN)
-	# Install standalone Python if not present
+	: # Install standalone Python if not present
 	test -f $(PEM_PYTHON) || { \
 		echo "Downloading standalone Python 3.12..."; \
 		mkdir -p $(PEM_VENV)/bin; \
@@ -45,6 +45,10 @@ setup: libbutteraugli.so
 	$(Q) UV_CACHE_DIR=.uv-cache uv pip install --python $(PEM_PYTHON) \
 		--extra-index-url https://download.pytorch.org/whl/cpu \
 		torch torchvision 'paddlepaddle>=2.6,<3' 'paddleocr>=2.7,<3' numpy Pillow opencv-python-headless rich tqdm cvvdp scikit-image ssimulacra2
+	$(Q) test -f .cache/paddleocr/.downloaded || { \
+		$(PEM_PYTHON) -W ignore::SyntaxWarning -c 'import metrics, paddleocr; paddleocr.PaddleOCR (use_angle_cls=True, lang="en", show_log=False)' && \
+		touch .cache/paddleocr/.downloaded; \
+	}
 CLEANFILES += libbutteraugli.so
 
 check: setup
