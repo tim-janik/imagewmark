@@ -32,27 +32,33 @@ libbutteraugli.so: $(BUTTERAUGLI_SRC) $(BUTTERAUGLI_WRAP) | butteraugli-build/bu
 PEM_VENV	:= .venv
 PEM_PYTHON	:= $(PEM_VENV)/bin/python3
 PEM_STANDALONE_URL := https://github.com/indygreg/python-build-standalone/releases/download/20241016/cpython-3.12.7+20241016-x86_64-unknown-linux-gnu-install_only.tar.gz
+PEM_STANDALONE_SHA256 := 43576f7db1033dd57b900307f09c2e86f371152ac8a2607133afa51cbfc36064
 
 setup: libbutteraugli.so
 	$(QGEN)
 	: # Install standalone Python if not present
 	test -f $(PEM_PYTHON) || { \
 		echo "Downloading standalone Python 3.12..."; \
-		mkdir -p $(PEM_VENV)/bin; \
-		curl -fsSL $(PEM_STANDALONE_URL) | tar xz --strip-components=1 -C $(PEM_VENV); \
+		mkdir -p $(PEM_VENV)/bin && \
+		curl -fsSL -o $(PEM_VENV).tar.gz.tmp $(PEM_STANDALONE_URL) && \
+		echo "$(PEM_STANDALONE_SHA256)  $(PEM_VENV).tar.gz.tmp" | sha256sum --quiet -c - && \
+		tar xzf $(PEM_VENV).tar.gz.tmp --strip-components=1 -C $(PEM_VENV) && \
+		rm -f $(PEM_VENV).tar.gz.tmp && \
 		ln -sf python3 $(PEM_VENV)/bin/python; \
 	}
 	$(Q) UV_CACHE_DIR=.uv-cache uv pip install --python $(PEM_PYTHON) \
 		--extra-index-url https://download.pytorch.org/whl/cpu \
 		torch torchvision 'paddlepaddle>=2.6,<3' 'paddleocr>=2.7,<3' numpy Pillow opencv-python-headless rich tqdm cvvdp scikit-image ssimulacra2
 	$(Q) test -f .cache/paddleocr/.downloaded || { \
-		$(PEM_PYTHON) -W ignore::SyntaxWarning -c 'import metrics, paddleocr; paddleocr.PaddleOCR (use_angle_cls=True, lang="en", show_log=False)' && \
+		mkdir -p .cache/paddleocr && \
+		$(PEM_PYTHON) -W ignore::SyntaxWarning -c 'import metrics, paddleocr; paddleocr.PaddleOCR (use_angle_cls=False, lang="en", show_log=False)' && \
 		touch .cache/paddleocr/.downloaded; \
 	}
-CLEANFILES += libbutteraugli.so
+CLEANFILES += libbutteraugli.so .venv.tar.gz.tmp
 
 check: setup
 	$(QGEN)
+	$Q $(PEM_PYTHON) tests/check-setup.py
 	$Q $(PEM_PYTHON) tests/run_tests.py
 
 clean:
@@ -60,4 +66,4 @@ clean:
 	rm -f $(CLEANFILES)
 	rm -rf $(CLEANDIRS)
 
-CLEANDIRS += .venv/ .uv-cache/ .cache/ __pycache__/
+CLEANDIRS += .venv/ .uv-cache/ .cache/ __pycache__/ butteraugli-build/butteraugli/

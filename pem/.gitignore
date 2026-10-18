@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 
 # Reference materials & build artifacts
+.venv.tar.gz.tmp
 pico-*
 pico_files/
 plan*.md
