@@ -16,7 +16,7 @@ Prerequisites: AMD64 Linux, `uv`, `curl` and `g++`.
 ```sh
 make -C pem setup	# Python 3.12, packages, builds libbutteraugli.so
 make -C pem check	# runs pem/tests/run_tests.py
-make -C pem clean	# removes .venv/ .uv-cache/ .cache/ libbutteraugli.so
+make -C pem clean	# removes Python, caches, downloaded sources and build outputs
 ```
 
 ## Usage
@@ -128,6 +128,7 @@ codec reports.
 
 **SSIM.** `skimage.metrics.structural_similarity`, single-scale SSIM (Wang et al.,
 IEEE TIP 2004) with Gaussian weights (sigma 1.5) over the RGB channels.
+Images below 11 pixels in either dimension use a smaller odd window.
 
 **SSIMULACRA2.** The `ssimulacra2` Python package. Detects compression-like
 artefacts. It reads the image files itself.
@@ -162,10 +163,11 @@ to 9.9 JOD. Means over the 18 Kodak images:
 **Text fidelity L1.** PaddleOCR finds text boxes in the original image, the metric
 is the mean absolute pixel difference inside these boxes.
 
-**Tiling artifact.** imagewmark tiles the watermark over the image, this metric
-watches tile boundaries. It is the mean absolute pixel difference in 8 px wide
-bands along a grid of 504 px tiles (`--tile-size`), at the scales 1, 0.5 and 0.25,
-averaged over the scales.
+**Tiling artifact.** Mean absolute pixel difference in 8 px wide bands along a
+grid of 504 px tiles (`--tile-size`), starting at the image origin. Results are
+averaged over the scales 1, 0.5 and 0.25. This is a fixed-grid heuristic.
+Imagewmark centers its watermark tiles and changes their size with zoom, so
+this grid does not generally follow the actual watermark tile boundaries.
 
 ## Dropped metrics
 

@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
-"""Perceptual Evaluation Metrics — CLI entry point.
-
-Compute metrics → JSON dict → display (default) or raw JSON (--json).
-
-Usage:
-    compare.py original.png watermarked.png       # pretty table
-    compare.py original.png watermarked.png --json  # raw JSON to stdout
-    compare.py --batch-dir ./images/              # batch mode
-"""
+"""Compare image pairs and print PEM tables or JSON."""
 
 import argparse
 import json
