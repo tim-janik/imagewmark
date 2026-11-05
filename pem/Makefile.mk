@@ -19,7 +19,7 @@ butteraugli.h.SHA256  := 64d0c2838a307ef603cfe376976df4f2c246898c021dde5468cf63b
 butteraugli-build/butteraugli/%:
 	$(QGEN)
 	$(Q) mkdir -p $(@D)
-	$(Q) curl -fsSL -o $@.tmp $(BUTTERAUGLI_URL)/$*
+	$(Q) curl -fsSL --retry 5 --retry-delay 2 -o $@.tmp $(BUTTERAUGLI_URL)/$*
 	$(Q) echo "$($*.SHA256)  $@.tmp" | sha256sum --quiet -c -
 	$(Q) mv $@.tmp $@
 
@@ -40,7 +40,7 @@ setup: libbutteraugli.so
 	test -f $(PEM_PYTHON) || { \
 		echo "Downloading standalone Python 3.12..."; \
 		mkdir -p $(PEM_VENV)/bin && \
-		curl -fsSL -o $(PEM_VENV).tar.gz.tmp $(PEM_STANDALONE_URL) && \
+		curl -fsSL --retry 5 --retry-delay 2 -o $(PEM_VENV).tar.gz.tmp $(PEM_STANDALONE_URL) && \
 		echo "$(PEM_STANDALONE_SHA256)  $(PEM_VENV).tar.gz.tmp" | sha256sum --quiet -c - && \
 		tar xzf $(PEM_VENV).tar.gz.tmp --strip-components=1 -C $(PEM_VENV) && \
 		rm -f $(PEM_VENV).tar.gz.tmp && \
