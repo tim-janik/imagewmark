@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Licensed under the GNU GPL-3.0+: https://www.gnu.org/licenses/gpl-3.0.html
 """PEM tests: distance calibration, known anchor points, text fidelity,
-identical images and the JSON output that tests/strength-report.py reads."""
+identical images and the JSON output of compare.py."""
 
 import json
 import os
