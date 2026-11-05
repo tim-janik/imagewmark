@@ -48,7 +48,7 @@ setup: libbutteraugli.so
 	}
 	$(Q) UV_CACHE_DIR=.uv-cache uv pip install --python $(PEM_PYTHON) \
 		--extra-index-url https://download.pytorch.org/whl/cpu \
-		torch torchvision 'paddlepaddle>=2.6,<3' 'paddleocr>=2.7,<3' numpy Pillow opencv-python-headless rich tqdm cvvdp scikit-image ssimulacra2
+		-r pyproject.toml
 	$(Q) test -f .cache/paddleocr/.downloaded || { \
 		mkdir -p .cache/paddleocr && \
 		$(PEM_PYTHON) -W ignore::SyntaxWarning -c 'import metrics, paddleocr; paddleocr.PaddleOCR (use_angle_cls=False, lang="en", show_log=False)' && \
