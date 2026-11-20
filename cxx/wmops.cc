@@ -131,7 +131,7 @@ main (int argc, char *argv[])
       s += "  \"" + std::string (streams[i].second) + "\": [";
       for (size_t j = 0; j < L; j += sizeof (uint64_t)) {
         char buffer[100] = { 0, };
-        const uint64_t b = r(); // big endian
+        const uint64_t b = r(); // low byte first, like get_bytes() in embed.cc
         snprintf (buffer, sizeof (buffer) - 1, "%u,%u,%u,%u,%u,%u,%u,%u,", uint8_t (b), uint8_t (b >> 8), uint8_t (b >> 16), uint8_t (b >> 24), uint8_t (b >> 32), uint8_t (b >> 40), uint8_t (b >> 48), uint8_t (b >> 56));
         s += buffer;
       }
