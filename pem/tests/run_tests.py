@@ -79,9 +79,9 @@ def test_anchor_points ():
   mse, psnr = compute_mse_psnr (orig, wm)
   check (mse.raw == 6.5025 and mse.calibrated == 0.1, f"MSE 6.5025 -> distance 0.1 (got {mse})")
   check (psnr.raw == 40.0 and psnr.calibrated == 0.1, f"PSNR 40 dB -> distance 0.1 (got {psnr})")
-  for offset, want in [(2, 0.1), (5, 0.2), (10, 0.5)]:
-    r = compute_tiling_artifact_loss (photo(), photo() + offset, tile_size=64)
-    check (r.raw == offset and r.calibrated == want, f"tiling offset {offset} -> distance {want} (got {r})")
+  for offset, want in [(5, 0.5), (15, 1.0)]:
+    r = compute_tiling_artifact_loss (photo(), photo() + offset)
+    check (r.raw == offset and r.calibrated == want, f"tile repetition offset {offset} -> distance {want} (got {r})")
 
 
 def test_text_fidelity ():
@@ -107,15 +107,28 @@ def test_small_ssim ():
     check (r.raw < 1.0 and r.calibrated > 0.0, f"changed {w}x{h} image: positive SSIM distance")
 
 
-def test_invalid_tile_size ():
-  print ("Tiling input validation")
-  for size in (0, -1):
+def test_tile_repetition ():
+  print ("Tile repetition")
+  rng = np.random.default_rng (1)
+  unit = np.kron (rng.choice ([-3, 3], (64, 64)), np.ones ((2, 2), dtype=int))  # zoom 2
+  block = np.block ([[unit, unit[:, ::-1]], [unit[::-1], unit[::-1, ::-1]]])
+  pattern = np.tile (block, (3, 4))[128:128 + 384, 192:192 + 512]  # 5x7 tiles, centered like imagewmark
+  orig = np.full ((384, 512, 3), 100, dtype=np.uint8)
+  wm = (orig + pattern[..., None]).astype (np.uint8)
+  r = compute_tiling_artifact_loss (orig, wm, zoom=2)
+  check (r.raw == 3.0, f"mirrored tiles at zoom 2 fully repeat (got {r.raw})")
+  shuffled = (orig + rng.permutation (pattern.ravel()).reshape (pattern.shape)[..., None]).astype (np.uint8)
+  r = compute_tiling_artifact_loss (orig, shuffled, zoom=2)
+  check (r.raw < 1.0, f"same pixels shuffled barely repeat (got {r.raw})")
+  r = compute_tiling_artifact_loss (photo (100, 100), photo (100, 100) + 5)
+  check (r.raw is None and r.calibrated == 0.0, f"image below two tiles: raw None, distance 0 (got {r})")
+  for zoom in (0, -1):
     try:
-      compute_tiling_artifact_loss (photo(), photo(), tile_size=size)
+      compute_tiling_artifact_loss (photo(), photo(), zoom=zoom)
     except ValueError:
-      check (True, f"tile size {size} rejected")
+      check (True, f"zoom {zoom} rejected")
     else:
-      check (False, f"tile size {size} rejected")
+      check (False, f"zoom {zoom} rejected")
 
 
 def test_butteraugli ():
@@ -168,7 +181,7 @@ def main ():
   test_calibrate()
   test_anchor_points()
   test_small_ssim()
-  test_invalid_tile_size()
+  test_tile_repetition()
   test_butteraugli()
   test_text_fidelity()
   with tempfile.TemporaryDirectory() as tmpdir:

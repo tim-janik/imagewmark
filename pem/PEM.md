@@ -32,9 +32,9 @@ pem/display.sh result.json                           # table from saved JSON
 |---|------|
 | `--json` | JSON output instead of a table |
 | `-v, --verbose` | Per-metric progress on stderr |
-| `--tile-size N` | Tile grid of the tiling artifact metric (default 504) |
+| `--zoom Z` | Zoom given to `imagewmark add --zoom`, for the tile repetition metric (default: imagewmark's automatic zoom) |
 | `--no-text` | Skip text fidelity |
-| `--no-tiling` | Skip the tiling artifact metric |
+| `--no-tiling` | Skip the tile repetition metric |
 | `--no-ssimulacra2` | Skip SSIMULACRA2 |
 | `--no-butteraugli` | Skip Butteraugli |
 | `--no-cvvdp` | Skip CVVDP, the slowest metric on CPU |
@@ -59,12 +59,12 @@ JSON output, one entry per metric:
 `raw` is the metric's own value, `direction` is 1 if higher is better and -1 if
 lower is better, `calibrated` is the distance (the field keeps its old name so older
 results stay readable). `raw` is null if OCR finds no text, if Butteraugli fails,
-and for the infinite PSNR of identical images; the distance is 0 then.
+if the image holds less than two watermark tiles per side, and for the infinite PSNR of identical images; the distance is 0 then.
 Metrics skipped with a `--no-*` option are null, the combined distance leaves
 them out.
 The metric keys are `mse`, `psnr`, `ms_ssim` (SSIM, the old key is kept),
 `ssimulacra2`, `butteraugli_l3`, `butteraugli_l2`, `cvvdp`, `text_fidelity_l1`
-and `tiling_artifact`.
+and `tiling_artifact` (tile repetition).
 
 ## Distance scale
 
@@ -86,7 +86,7 @@ on the scale to tell differences below the just noticeable threshold apart.
 | Butteraugli 2-norm | ↓ | 0 | 1.0 | 3.0 | 6.0 | 10 | 10% |
 | CVVDP [JOD] | ↑ | 10 | 9 | 7 | 4 | 0 | 20% |
 | Text fidelity L1 | ↓ | 0 | 3 | 8 | 15 | 40 | 20% |
-| Tiling artifact | ↓ | 0 | 2 | 5 | 10 | 30 | 10% |
+| Tile repetition | ↓ | 0 | 1.5 | 2.5 | 5 | 15 | 10% |
 
 Where the anchors come from:
 
@@ -102,8 +102,11 @@ Where the anchors come from:
   (CVVDP paper, arXiv:2401.11485 §3.8), so at 9 JOD 75% of observers prefer the
   original. 7 and 4 were calibrated on example images. All Kodak test image strength
   sweep scores are above 9.
-- Text fidelity and tiling: custom anchors, set to penalize visible watermark
-  artefacts around crisp text.
+- Text fidelity: custom anchors, set to penalize visible watermark artefacts
+  around crisp text.
+- Tile repetition: set on imagewmark embeddings at strength 0.5 to 8, so its
+  distance follows Butteraugli on the same images. Default strength 2 gives 0.8 to
+  1.9, strength 4 about 2.5 and strength 8 about 3.4 to 4.7.
 
 The quality label of a metric or of the combined distance is excellent below 0.1,
 good below 0.2, acceptable below 0.5 and poor above.
@@ -163,14 +166,19 @@ to 9.9 JOD. Means over the 18 Kodak images:
 **Text fidelity L1.** PaddleOCR finds text boxes in the original image, the metric
 is the mean absolute pixel difference inside these boxes.
 
-**Tiling artifact.** Mean absolute pixel difference in 8 px wide bands along a
-grid of 504 px tiles (`--tile-size`), starting at the image origin. Results are
-averaged over the scales 1, 0.5 and 0.25. This is a fixed-grid heuristic.
-Imagewmark centers its watermark tiles and changes their size with zoom, so
-this grid does not generally follow the actual watermark tile boundaries.
-A scale without a grid line inside the image uses the mean difference of the
-whole image. With the default tile size, that is every scale for images up to
-504 px in both dimensions.
+**Tile repetition.** imagewmark repeats one 64x64 watermark unit over the image,
+scaled by the zoom and mirrored on every other tile, with the middle tile centered
+on the image (`src/embed.py`). The zoom fits 8 tiles across the short side, but at
+least 1.5, so tiles are 96 px or larger. Mirroring keeps the pattern continuous,
+there are no seams at tile edges, so the visible effect of the tiling is the
+repeated pattern itself. The metric folds the difference image, averaged over
+RGB, onto this tile grid, undoes the mirroring and averages all tiles into one.
+The repeated part of the difference survives, the rest averages out. The raw
+value is the mean absolute value of that average tile. A uniform offset counts
+fully. Noise that does not repeat leaves a small rest that shrinks with the
+square root of the tile count. The grid follows imagewmark's automatic zoom, pass
+`--zoom` if the image was embedded with `imagewmark add --zoom`. Images with less
+than two tiles per side have raw null and distance 0.
 
 ## Dropped metrics
 
@@ -186,3 +194,9 @@ about 8 s per image pair.
 VIF (Sheikh and Bovik, 2006) was tested and dropped. It is slow and its wavelet
 model correlates poorly with what people see in watermark and compression
 artefacts. CVVDP and Butteraugli model human vision better.
+
+The tiling artifact loss measured the difference in 8 px bands along a fixed
+504 px grid from the image origin. On imagewmark output these bands differ no
+more than bands through the tile centers or the whole image, since the mirrored
+tiles have no seams, so it was a noisy copy of the mean pixel difference. Tile
+repetition replaced it.
