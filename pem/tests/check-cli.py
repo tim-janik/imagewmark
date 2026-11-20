@@ -76,12 +76,12 @@ class CliTest (unittest.TestCase):
     self.assertEqual (displayed.returncode, 0, displayed.stderr)
     self.assertEqual (displayed.stdout.count ("Original:"), 2)
 
-  def test_invalid_tile_sizes (self):
-    for size in ("0", "-1"):
-      with self.subTest (size=size):
-        result = self.run_cli ("compare.py", ["--tile-size", size])
+  def test_invalid_zoom (self):
+    for zoom in ("0", "-1"):
+      with self.subTest (zoom=zoom):
+        result = self.run_cli ("compare.py", ["--zoom", zoom])
         self.assertEqual (result.returncode, 2)
-        self.assertIn ("--tile-size must be positive", result.stderr)
+        self.assertIn ("--zoom must be positive", result.stderr)
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ _WEIGHTS = {
   "butteraugli_l2":    0.1,  # 2-norm/RMS; best CID22 correlation
   "cvvdp":             0.2,  # psychophysical JND model; primary metric of the JPEG XL paper's codec comparison
   "text_fidelity_l1":  0.2,  # text preservation
-  "tiling_artifact":   0.1,  # tile-boundary consistency
+  "tiling_artifact":   0.1,  # repeated watermark tile pattern
 }
 _WEIGHTS_SUM = sum (_WEIGHTS.values())
 METRIC_WEIGHTS = {k: v / _WEIGHTS_SUM for k, v in _WEIGHTS.items()}
@@ -127,7 +127,7 @@ def display_result (result: dict):
   _add ("Butteraugli L2", "butteraugli_l2")
   _add ("CVVDP", "cvvdp")
   _add ("Text Fidelity L1", "text_fidelity_l1")
-  _add ("Tiling Artifact (agg)", "tiling_artifact")
+  _add ("Tile Repetition", "tiling_artifact")
 
   console.print()
   console.print (table)

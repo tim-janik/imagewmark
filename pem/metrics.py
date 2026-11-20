@@ -201,42 +201,52 @@ def compute_text_fidelity (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
 
 
 # ---------------------------------------------------------------------------
-# Tiling Artifact Loss (multi-resolution L1 on tile boundaries)
+# Tile repetition (the part of the difference that repeats with imagewmark's tiles)
 # ---------------------------------------------------------------------------
 
-def compute_tiling_artifact_loss (orig: np.ndarray, wm: np.ndarray, tile_size: int = 504) -> MetricResult:
-  """Multi-resolution L1 loss on tile boundary regions. Returns aggregate as MetricResult.
+def _tile_positions (n: int, zoom: float, bins: int) -> np.ndarray:
+  """Position of each row or column inside imagewmark's mirrored tiles, see src/embed.py."""
+  reps = int (n / 64 / zoom) + 2
+  reps += reps % 2 == 0
+  t = (np.arange (n) + (int (64 * reps * zoom) - n + 1) // 2) / (64 * zoom)
+  k = np.floor (t)
+  pos = np.minimum ((t - k) * bins, bins - 1).astype (int)
+  return np.where (k % 2, bins - 1 - pos, pos)
 
-  Distance anchors: excellent <2, good <5, acceptable <10, poor <30
+
+def compute_tiling_artifact_loss (orig: np.ndarray, wm: np.ndarray, zoom: float = None) -> MetricResult:
+  """Mean absolute difference after averaging all imagewmark tiles into one.
+
+  imagewmark repeats one 64x64 watermark unit, scaled by zoom and mirrored on every other
+  tile, centered on the image. Averaging the tiles keeps what repeats and cancels the rest.
+  zoom defaults to the zoom imagewmark picks for the image size.
+  Images with less than two tiles per side have no repetition to measure, raw None.
+
+  Distance anchors: excellent <1.5, good <2.5, acceptable <5, poor <15
   """
-  if tile_size <= 0:
-    raise ValueError ("tile_size must be positive")
-  import cv2
+  if zoom is not None and zoom <= 0:
+    raise ValueError ("zoom must be positive")
+  h, w = orig.shape[:2]
+  zoom = zoom or max (min (h, w) / 64 / 8, 1.5)  # config.dynamic_zoom, config.minimum_zoom
+  if min (h, w) < 2 * 64 * zoom:
+    return MetricResult (raw=None, unit="", direction=-1, calibrated=0.0)
 
   # Ascending (lower=better)
-  # POI source: custom metric — heuristic on [0,255] pixel L1 difference at tile boundaries
+  # POI source: custom metric — set on imagewmark embeddings at strength 0.5 to 8,
+  # so the distance follows Butteraugli on the same images
   _anchors = [
     (0.0, 0.00),
-    (2.0, QUALITY_EXCELLENT),   # excellent: imperceptible boundaries
-    (5.0, QUALITY_GOOD),   # good: subtle boundary shift
-    (10.0, QUALITY_ACCEPTABLE),  # acceptable: not objectionable
-    (30.0, QUALITY_POOR),  # poor: obvious tiling artifacts
+    (1.5, QUALITY_EXCELLENT),   # excellent: default strength on most images
+    (2.5, QUALITY_GOOD),   # good: strength 4
+    (5.0, QUALITY_ACCEPTABLE),  # acceptable: strength 8
+    (15.0, QUALITY_POOR),  # poor: obvious repeated pattern
   ]
 
-  band_width = 8
-  scale_results = []
-  for scale in (1.0, 0.5, 0.25):
-    new_h = max (int (orig.shape[0] * scale), 1)
-    new_w = max (int (orig.shape[1] * scale), 1)
-    o_s = cv2.resize (orig, (new_w, new_h), interpolation=cv2.INTER_LINEAR).astype (np.float64)
-    w_s = cv2.resize (wm, (new_w, new_h), interpolation=cv2.INTER_LINEAR).astype (np.float64)
-    ts = max (int (tile_size * scale), 1)
-    diff = np.abs (o_s - w_s)
-    boundary_errors = [diff[:, max (0, x - band_width // 2):x + (band_width + 1) // 2].mean() for x in range (ts, new_w, ts)]
-    boundary_errors += [diff[max (0, y - band_width // 2):y + (band_width + 1) // 2].mean() for y in range (ts, new_h, ts)]
-    scale_results.append (round (float (np.mean (boundary_errors) if boundary_errors else diff.mean()), 6))
-
-  raw = round (float (np.mean (scale_results)), 6)
+  bins = int (round (64 * zoom))
+  idx = (_tile_positions (h, zoom, bins)[:, None] * bins + _tile_positions (w, zoom, bins)).ravel()
+  diff = (wm.astype (np.float64) - orig.astype (np.float64)).mean (axis=2).ravel()
+  tile = np.bincount (idx, diff, bins * bins) / np.maximum (np.bincount (idx, minlength=bins * bins), 1)
+  raw = round (float (np.abs (tile[idx]).mean()), 6)
   return MetricResult (raw=raw, unit="", direction=-1, calibrated=round (calibrate (raw, _anchors), 6))
 
 
@@ -343,7 +353,7 @@ def compute_cvvdp (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
 # Convenience: compute all metrics at once
 # ---------------------------------------------------------------------------
 
-def compute_all_metrics (original_path: str, watermarked_path: str, tile_size: int = 504, skip_text: bool = False, skip_tiling: bool = False,
+def compute_all_metrics (original_path: str, watermarked_path: str, zoom: float = None, skip_text: bool = False, skip_tiling: bool = False,
                          skip_ssimulacra2: bool = False, skip_butteraugli: bool = False, skip_cvvdp: bool = False, verbose: bool = False) -> dict:
   """Load images and compute every metric.
 
@@ -362,7 +372,7 @@ def compute_all_metrics (original_path: str, watermarked_path: str, tile_size: i
   metrics["ssimulacra2"] = None if skip_ssimulacra2 else run ("SSIMULACRA2", compute_ssimulacra2, original_path, watermarked_path)
   metrics["butteraugli_l3"], metrics["butteraugli_l2"] = (None, None) if skip_butteraugli else run ("Butteraugli", compute_butteraugli, orig, wm)
   metrics["text_fidelity_l1"] = None if skip_text else run ("text fidelity", compute_text_fidelity, orig, wm)
-  metrics["tiling_artifact"] = None if skip_tiling else run ("tiling artifact", compute_tiling_artifact_loss, orig, wm, tile_size)
+  metrics["tiling_artifact"] = None if skip_tiling else run ("tile repetition", compute_tiling_artifact_loss, orig, wm, zoom)
   metrics["cvvdp"] = None if skip_cvvdp else run ("CVVDP", compute_cvvdp, orig, wm)
   return {
     "metrics": {k: asdict (v) if v else None for k, v in metrics.items()},
