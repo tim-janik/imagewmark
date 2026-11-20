@@ -30,7 +30,7 @@ doc/imagewmark.1: doc/imagewmark.1.md doc/Makefile.mk
 	$Q SECONDS="$$(git log -1 --format=%ct -- $< 2>/dev/null || stat -c %Y $<)" \
 	&& $(PANDOC) -p -f $(doc/markdown-flavour) \
 		-M date="$$(date +%Y-%m-%d -d "@$$SECONDS")" \
-		-M footer="imagewmark-$(VERSION)" \
+		-M footer="imagewmark-$(version)" \
 		-t man -s -o $@.tmp $<
 	$Q mv $@.tmp $@
 doc/mans1 += doc/imagewmark.1
