@@ -111,5 +111,5 @@ for _ in $(seq 1 64); do printf '%b' '\377\377' >> "$tmpdir/valid-16bit.jpg"; do
 printf '%b' '\377\331' >> "$tmpdir/valid-16bit.jpg"
 expect_exact "$tmpdir/valid-16bit.jpg" 50
 
-test "$ERRORS" = false || { printf '%-8s%s\n' FAIL 'jpeg-quality checks' >&2; exit 1; }
-printf '%-8s%s\n' OK 'jpeg-quality checks'
+test "$ERRORS" = false || { printf '  %-8s %s\n' FAIL 'jpeg-quality checks' >&2; exit 1; }
+printf '  %-8s %s\n' OK 'jpeg-quality checks'

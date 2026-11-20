@@ -3,7 +3,7 @@ import sys
 import numpy as np
 
 # Default encryption key for unique encoding/decoding
-DEFAULT_KEY = b'00000000000000000000000000000000'
+DEFAULT_KEY = '00000000000000000000000000000000'
 
 # message bits is the number of watermark bits without error correction
 message_size = 128

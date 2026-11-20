@@ -48,9 +48,9 @@ check()
   local name="$1"; shift
   checks=$((checks + 1))
   if "$@"; then
-    echo "  OK      $name"
+    printf '  %-8s %s\n' OK "$name"
   else
-    echo "  FAIL    $name"
+    printf '  %-8s %s\n' FAIL "$name"
     failures=$((failures + 1))
   fi
 }
@@ -62,7 +62,7 @@ check_opt()
   for dep in ${deps//,/ }; do
     command -v "$dep" >/dev/null 2>&1 || {
       checks=$((checks + 1))
-      echo "  SKIP    $name (no $dep)"
+      printf '  %-8s %s\n' SKIP "$name (no $dep)"
       return
     }
   done

@@ -183,7 +183,7 @@ accumulate_units (Mat& acc_units, const Mat& W_est, float zoom, float center_x, 
       return 255 - px;
   };
 
-  int xindex[width];
+  vector<int> xindex (width);
   for (int x = 0; x < width; x++)
     xindex[x] = to_dest_pixel (source_x + dx * x);
 
