@@ -79,18 +79,21 @@ installcheck:
 	$Q rm -r $(TDIR)
 
 # == dist ==
+# DIST_VERSION overrides the release version, e.g. a nightly tag plus -g<hash>; dist bakes it into .version.
 dist:
+	$(eval TAG := $(or $(DIST_VERSION),$(TAG)))
+	$(eval version_info := $(TAG) $(version_date))
 	$(eval distname := imagewmark-$(version))
 	$(QECHO) MAKE $(distname).tar.zst
 	$Q git describe --dirty | grep -qve -dirty || echo -e "#\n# $@: WARNING: working tree is dirty\n#"
-	$Q rm -r -f artifacts/ && mkdir -p artifacts/
+	$Q rm -r -f artifacts/ && mkdir -p artifacts/ && echo '$(version_info)' > artifacts/.version
 	$Q # Generate ChangeLog with ^^-prefixed records. Tab-indent commit bodies, kill whitespaces and multi-newlines
 	$Q git log --abbrev=13 --date=short --first-parent HEAD	\
 		--pretty='^^%ad  %an 	# %h%n%n%B%n'		>  artifacts/ChangeLog \
 	&& sed 's/^/	/; s/^	^^// ; s/[[:space:]]\+$$// '	-i artifacts/ChangeLog \
 	&& sed '/^\s*$$/{ N; /^\s*\n\s*$$/D }'			-i artifacts/ChangeLog
 	$Q # Generate and compress artifacts/*.tar.zst
-	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog -o artifacts/$(distname).tar HEAD
+	$Q git archive --prefix=$(distname)/ --add-file artifacts/ChangeLog --add-file artifacts/.version -o artifacts/$(distname).tar HEAD ':!.version'
 	$Q zstd --ultra -22 --rm artifacts/$(distname).tar && ls -lh artifacts/$(distname).tar.zst
 	$Q echo "Archive ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
 CLEANDIRS += artifacts/
@@ -117,8 +120,8 @@ distcheck: dist
 	&& gzip -9c doc/imagewmark.1 > $(CURDIR)/artifacts/imagewmark.1.gz \
 	&& cp -p doc/imagewmark-arch.html $(CURDIR)/artifacts/
 	$Q cd artifacts/ \
-	&& sha256sum $(distname).tar.zst ChangeLog imagewmark.1.gz imagewmark-arch.html > $(distname).SHA256SUMS \
-	&& sha256sum -c $(distname).SHA256SUMS
+	&& sha256sum $(distname).tar.zst ChangeLog imagewmark.1.gz imagewmark-arch.html > SHA256SUMS \
+	&& sha256sum -c SHA256SUMS
 	$Q echo "Distcheck ready: artifacts/$(distname).tar.zst" | sed '1h; 1s/./=/g; 1p; 1x; $$p; $$x'
 .PHONY: distcheck
 
