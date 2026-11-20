@@ -150,6 +150,15 @@ tests/formats/check: imagewmark tests/formats/check-formats.sh tests/formats/che
 .PHONY: tests/formats/check
 check: tests/formats/check
 
+# == check-wmops-rand ==
+# The first wm_pattern bytes for the default key, must match on all hosts
+tests/check-wmops-rand: cxx/wmops
+	$(QCHECK)
+	$Q cxx/wmops rand | grep -F '"wm_pattern": [210,108,168,236,168,44,179,248,13,230,108,154,208,28,21,153,' > /dev/null \
+	  || { echo "$@: unexpected byte order from: cxx/wmops rand" >&2; false; }
+.PHONY: tests/check-wmops-rand
+check: tests/check-wmops-rand
+
 # == check ==
 FLAT_IMAGE_CHECKS := $(addprefix tests/check-flat-images-,black gray white)
 $(FLAT_IMAGE_CHECKS): tests/check-flat-images-%: .version imagewmark cxx/wmops cxx/peaks2grid cxx/cornersync tests/check-flat-images.py
