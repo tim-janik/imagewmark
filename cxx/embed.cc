@@ -438,7 +438,7 @@ save_host_image (const VImage &img, const std::string &path, const std::string &
   // Write the result including ALL metadata
   auto save_opts = VImage::option()->set ("keep", VIPS_FOREIGN_KEEP_ALL); // drop meta-data: VIPS_FOREIGN_KEEP_NONE
 
-  // The input image's channels (incl. alpha) and bit depth are preserved by
+  // The working image's channels (incl. alpha) and bit depth are preserved by
   // load_host_image() + round_pixels(); savers may still down-convert where
   // the target format cannot hold them (e.g. JPEG is always 8-bit)
 
@@ -528,7 +528,7 @@ save_supports_float (const std::string &path)
 }
 
 /// Host image loaded for watermarking: the watermarkable channels (greyscale,
-/// RGB or CMYK) in their native pixel format, with any alpha channel split off
+/// RGB or CMYK) in the working pixel format, with any alpha channel split off
 /// so it can pass through untouched. `format` and `interpretation` record the
 /// pixel storage to restore on save (bit depth, colorspace round trip).
 struct HostImage {
@@ -539,15 +539,18 @@ struct HostImage {
   VipsInterpretation interpretation = VIPS_INTERPRETATION_sRGB; // colorspace of img
 };
 
-/// Load the host image, preserving all channels (including alpha) and the
-/// original pixel format (bit depth). Only the watermarkable channels are
-/// kept in `img`, the alpha channel is split off and rejoined untouched.
+/// Load the host image, convert Lab, XYZ and coded inputs to RGB and split off alpha.
 static HostImage
 load_host_image (const std::string &path)
 {
   VImage host = VImage::new_from_file (path.c_str());
-  if (host.coding() != VIPS_CODING_NONE) // e.g. LabQ
-    host = host.colourspace (VIPS_INTERPRETATION_sRGB);
+  const VipsInterpretation interpretation = host.interpretation();
+  const bool lab_or_xyz = interpretation == VIPS_INTERPRETATION_LAB || interpretation == VIPS_INTERPRETATION_LABS ||
+                          interpretation == VIPS_INTERPRETATION_XYZ;
+  if (host.coding() != VIPS_CODING_NONE || lab_or_xyz) {
+    host = host.colourspace (lab_or_xyz ? VIPS_INTERPRETATION_RGB16 : VIPS_INTERPRETATION_sRGB);
+    host.remove ("icc-profile-data");
+  }
   HostImage result;
   result.format = host.format();
   result.interpretation = host.interpretation();
@@ -587,7 +590,6 @@ image_from_floats (const FloatS &floats, int width, int height, int bands = 1)
 static void
 command_add (const AddOptions &opt)
 {
-  // Load the host image, preserving all channels and bit depth
   HostImage loaded = load_host_image (opt.input_img);
   const VImage &host = loaded.img;
 
@@ -679,7 +681,7 @@ command_add (const AddOptions &opt)
     dprintf (2, "PSNR: %f\n", psnr);
   }
 
-  // Restore the input image's colorspace and pixel format (bit depth):
+  // Save the working colorspace and pixel format where possible:
   // - CMYK can only be stored by a few formats, fall back to RGB otherwise
   // - floating point pixels can only be stored by a few formats, fall back to 8-bit
   const bool native_cmyk = loaded.interpretation == VIPS_INTERPRETATION_CMYK;
