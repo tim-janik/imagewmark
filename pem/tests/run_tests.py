@@ -141,6 +141,11 @@ def test_butteraugli ():
     check (compare.call_count == 1, "both Butteraugli norms use one native comparison")
     check (l3.raw >= l2.raw > 0.0, f"valid norms with L3 >= L2 (got {l3.raw}, {l2.raw})")
   check (compute_butteraugli_arrays_norms (orig, orig[:-1]) == (-1.0, -1.0), "Butteraugli dimension mismatch rejected")
+  with mock.patch ("butteraugli._load_library") as load_library:
+    for invalid in (orig[..., 0], orig[..., :1], np.zeros ((*orig.shape[:2], 4), dtype=np.uint8)):
+      result = compute_butteraugli_arrays_norms (invalid, invalid)
+      check (result == (-1.0, -1.0), f"Butteraugli rejects shape {invalid.shape}")
+    check (not load_library.called, "invalid shapes never reach native code")
 
 
 def test_compare_json (tmpdir):

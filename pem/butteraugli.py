@@ -32,15 +32,14 @@ def _load_library () -> ctypes.CDLL:
 
 def compute_butteraugli_arrays_norms (orig: np.ndarray, wm: np.ndarray) -> tuple[float, float]:
   """Return both norms of (H, W, 3) uint8 sRGB arrays, or (-1, -1) on error."""
-  lib = _load_library()
-
   o = np.ascontiguousarray (orig, dtype=np.uint8)
   w = np.ascontiguousarray (wm, dtype=np.uint8)
 
-  h, wd = o.shape[:2]
-  if o.shape != w.shape:
+  if o.ndim != 3 or o.shape[2] != 3 or o.shape != w.shape:
     return -1.0, -1.0
 
+  lib = _load_library()
+  h, wd = o.shape[:2]
   l3, l2 = ctypes.c_double(), ctypes.c_double()
   if not lib.butteraugli_compare_arrays_norms (o.ctypes.data, h, wd, w.ctypes.data, h, wd,
                                               ctypes.byref (l3), ctypes.byref (l2)):
