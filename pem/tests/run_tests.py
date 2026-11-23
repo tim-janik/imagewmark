@@ -67,6 +67,9 @@ def test_calibrate ():
     check (abs (calibrate (raw, desc) - want) < 1e-9, f"descending anchors: {raw} -> {want}")
   for raw, want in [(2.0, 0.1), (5.0, 0.2), (20.0, 0.75), (-1.0, 0.0), (40.0, 1.0)]:
     check (abs (calibrate (raw, asc) - want) < 1e-9, f"ascending anchors: {raw} -> {want}")
+  for anchors in (desc, asc):
+    shuffled = anchors[2:] + anchors[:2]
+    check (calibrate (float ("nan"), shuffled) == 1.0, f"NaN maps to the worst distance with anchors {shuffled}")
   for distance, want in [(0.0, "excellent"), (0.1, "good"), (0.2, "acceptable"), (0.5, "poor")]:
     check (quality_label (distance) == want, f"quality_label({distance}) == {want}")
 

@@ -24,9 +24,9 @@ def calibrate (raw: float, anchors: list[tuple[float, float]]) -> float:
   lower=better and higher=better metrics both work.
 
   Values outside the anchor range clamp to the nearest endpoint's
-  distance."""
+  distance. NaN maps to the largest distance."""
   if math.isnan (raw):
-    return anchors[-1][1]  # the poor anchor
+    return max (distance for _, distance in anchors)
   (x0, y0), *rest = sorted (anchors)
   if raw <= x0:
     return y0
