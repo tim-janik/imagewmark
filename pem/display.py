@@ -110,7 +110,7 @@ def display_result (result: dict):
   def _add (name, brk_key):
     bd = breakdown.get (brk_key)
     if not bd:
-      table.add_row (name, "N/A ↓", "skipped", Text ("N/A", style=QUALITY_COLORS["N/A"]), "0.000", "0.000000")
+      table.add_row (name, "N/A", "skipped", Text ("N/A", style=QUALITY_COLORS["N/A"]), "0.000", "0.000000")
       return
     arrow = "↑" if bd["direction"] == +1 else "↓"
     display = f"{bd['raw']}{bd['unit']} {arrow}" if bd["raw"] is not None else f"N/A {arrow}"

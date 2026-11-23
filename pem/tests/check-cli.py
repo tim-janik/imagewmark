@@ -49,6 +49,7 @@ class CliTest (unittest.TestCase):
         rows = [line for line in displayed.stdout.splitlines() if "SSIMULACRA2" in line]
         self.assertEqual (len (rows), 2)
         self.assertTrue (all ("skipped" in line and "N/A" in line and "excellent" not in line for line in rows))
+        self.assertTrue (all ("↑" not in line and "↓" not in line for line in rows))
 
   def test_case_distinct_pairs (self):
     for name in ("One_ORIG", "One_WM"):
