@@ -131,7 +131,7 @@ codec reports.
 
 **SSIM.** `skimage.metrics.structural_similarity`, single-scale SSIM (Wang et al.,
 IEEE TIP 2004) with Gaussian weights (sigma 1.5) over the RGB channels.
-Images below 11 pixels in either dimension use a smaller odd window.
+Images below 11 pixels in either dimension use a smaller odd window with uniform weights.
 
 **SSIMULACRA2.** The `ssimulacra2` Python package. Detects compression-like
 artefacts. It reads the image files itself.

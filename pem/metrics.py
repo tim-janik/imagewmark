@@ -131,12 +131,13 @@ def compute_ssim (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
     (0.70, QUALITY_POOR),   # poor: significant degradation
   ]
 
-  win_size = min (11, min (orig.shape[:2]))
-  if win_size % 2 == 0:
-    win_size -= 1
+  short_side = min (orig.shape[:2])
+  if short_side < 11:
+    options = dict (win_size=short_side - (short_side % 2 == 0))
+  else:
+    options = dict (gaussian_weights=True, sigma=1.5)
   raw = round (float (_sk_ssim (
-    orig, wm, data_range=255, channel_axis=2,
-    gaussian_weights=True, sigma=1.5, use_sample_covariance=False, win_size=win_size,
+    orig, wm, data_range=255, channel_axis=2, use_sample_covariance=False, **options,
   )), 6)
 
   return MetricResult (raw=raw, unit="", direction=+1, calibrated=round (calibrate (raw, _anchors), 6))

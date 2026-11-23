@@ -108,6 +108,11 @@ def test_small_ssim ():
     check (r.raw == 1.0 and r.calibrated == 0.0, f"identical {w}x{h} image: SSIM 1")
     r = compute_ssim (orig, orig + 5)
     check (r.raw < 1.0 and r.calibrated > 0.0, f"changed {w}x{h} image: positive SSIM distance")
+  orig = np.zeros ((1, 2, 3), dtype=np.uint8)
+  wm = orig.copy()
+  wm[0, 0] = 255
+  r = compute_ssim (orig, wm)
+  check (0.5 < r.raw < 0.501, f"a one-pixel window scores each pixel separately (got {r.raw})")
 
 
 def test_tile_repetition ():
