@@ -130,8 +130,12 @@ def test_tile_repetition ():
   check (r.raw < 1.0, f"same pixels shuffled barely repeat (got {r.raw})")
   r = compute_tiling_artifact_loss (photo (100, 100), photo (100, 100) + 5)
   check (r.raw is None and r.calibrated == 0.0, f"image below two tiles: raw None, distance 0 (got {r})")
-  pos = _tile_positions (1005, 1005 / 512, 126)
-  check (pos[0] == 63, "fractional zoom uses the same 188-pixel crop offset as imagewmark")
+  pos = _tile_positions (981, 981 / 512, 123)
+  check (pos[0] == 61, "fractional zoom uses the same 61-pixel crop offset as imagewmark")
+  tile_pair = np.r_[np.arange (100), np.arange (99, -1, -1)]
+  for n in (800, 1200):
+    expected = np.tile (tile_pair, n // 200 + 1)[50:50 + n]
+    check (np.array_equal (_tile_positions (n, 1.5625, 100), expected), f"imagewmark's 100-pixel tile grid on a {n}-pixel side")
   for zoom in (0, -1):
     try:
       compute_tiling_artifact_loss (photo(), photo(), zoom=zoom)

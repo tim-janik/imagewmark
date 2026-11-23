@@ -77,6 +77,19 @@ class CliTest (unittest.TestCase):
     self.assertEqual (displayed.returncode, 0, displayed.stderr)
     self.assertEqual (displayed.stdout.count ("Original:"), 2)
 
+  def test_dynamic_zoom (self):
+    orig = self.root / "one_orig.png"
+    wm = self.root / "one_wm.png"
+    Image.new ("RGB", (256, 192), (100, 100, 100)).save (orig)
+    Image.new ("RGB", (256, 192), (102, 102, 102)).save (wm)
+    args = [orig, wm, "--json", *SKIP_MODELS, "--dynamic-zoom", "1"]
+    result = self.run_cli ("compare.py", args)
+    self.assertEqual (result.returncode, 0, result.stderr)
+    self.assertIsNone (json.loads (result.stdout)["metrics"]["tiling_artifact"]["raw"])
+    result = self.run_cli ("compare.py", [*args, "--zoom", "1.5"])
+    self.assertEqual (result.returncode, 0, result.stderr)
+    self.assertEqual (json.loads (result.stdout)["metrics"]["tiling_artifact"]["raw"], 2.0)
+
   def test_invalid_zoom (self):
     for zoom in ("0", "-1"):
       with self.subTest (zoom=zoom):

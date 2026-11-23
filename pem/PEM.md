@@ -33,6 +33,7 @@ pem/display.sh result.json                           # table from saved JSON
 | `--json` | JSON output instead of a table |
 | `-v, --verbose` | Per-metric progress on stderr |
 | `--zoom Z` | Zoom given to `imagewmark add --zoom`, for the tile repetition metric (default: imagewmark's automatic zoom) |
+| `--dynamic-zoom N` | Value given to `imagewmark add --dynamic-zoom` (default: 8, ignored with `--zoom`) |
 | `--no-text` | Skip text fidelity |
 | `--no-tiling` | Skip the tile repetition metric |
 | `--no-ssimulacra2` | Skip SSIMULACRA2 |
@@ -104,9 +105,7 @@ Where the anchors come from:
   sweep scores are above 9.
 - Text fidelity: custom anchors, set to penalize visible watermark artefacts
   around crisp text.
-- Tile repetition: set on imagewmark embeddings at strength 0.5 to 8, so its
-  distance follows Butteraugli on the same images. Default strength 2 gives 0.8 to
-  1.9, strength 4 about 2.5 and strength 8 about 3.4 to 4.7.
+- Tile repetition: anchors set on two photos watermarked at strengths 0.5 to 8.
 
 The quality label of a metric or of the combined distance is excellent below 0.1,
 good below 0.2, acceptable below 0.5 and poor above.
@@ -176,9 +175,17 @@ RGB, onto this tile grid, undoes the mirroring and averages all tiles into one.
 The repeated part of the difference survives, the rest averages out. The raw
 value is the mean absolute value of that average tile. A uniform offset counts
 fully. Noise that does not repeat leaves a small rest that shrinks with the
-square root of the tile count. The grid follows imagewmark's automatic zoom, pass
-`--zoom` if the image was embedded with `imagewmark add --zoom`. Images with less
-than two tiles per side have raw null and distance 0.
+square root of the tile count. Pass the same `--zoom` or `--dynamic-zoom` used by
+`imagewmark add` to match its grid. Images with fewer than two tiles per side have
+raw null and distance 0.
+
+A follow-up used eight scikit-image photos (astronaut, camera, Chelsea, coffee,
+Hubble Deep Field, moon, motorcycle and rocket). Coffee was resized to 1200×800.
+The tile score rose at every step from strength 0.5 through 1, 2, 4 and 8 for all
+eight photos. At strength 4, raw tile scores ranged from 2.69 to 3.05. Shuffling
+the same pixel differences reduced raw scores by a factor of 2.7 to 8.6 across the
+40 pairs. A repeated pattern can score differently from Butteraugli, which
+measures overall visible differences.
 
 ## Dropped metrics
 

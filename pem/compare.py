@@ -46,6 +46,7 @@ def _compute (args, orig_path, wm_path):
     return compute_all_metrics (
       orig_path, wm_path,
       zoom=args.zoom,
+      dynamic_zoom=args.dynamic_zoom,
       skip_text=args.no_text,
       skip_tiling=args.no_tiling,
       skip_ssimulacra2=args.no_ssimulacra2,
@@ -77,6 +78,8 @@ def main ():
   parser.add_argument ("--verbose", "-v", action="store_true", help="Extra diagnostics")
   parser.add_argument ("--zoom", type=float, default=None,
                        help="Zoom that imagewmark add used (default: its automatic zoom)")
+  parser.add_argument ("--dynamic-zoom", type=float,
+                       help="Dynamic zoom that imagewmark add used (default: 8, ignored with --zoom)")
   parser.add_argument ("--no-text", action="store_true", help="Skip text fidelity computation")
   parser.add_argument ("--no-tiling", action="store_true", help="Skip tile repetition computation")
   parser.add_argument ("--no-ssimulacra2", action="store_true", help="Skip SSIMULACRA2 computation")

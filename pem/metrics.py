@@ -206,21 +206,22 @@ def compute_text_fidelity (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
 # ---------------------------------------------------------------------------
 
 def _tile_positions (n: int, zoom: float, bins: int) -> np.ndarray:
-  """Position inside imagewmark's mirrored tiles, using the truncated canvas size from cxx/embed.cc."""
-  reps = int (n / 64 / zoom) + 2
+  """Position inside imagewmark's mirrored tiles, with the canvas and crop from cxx/embed.cc."""
+  reps = int (n // 64 / zoom + 2)
   reps += reps % 2 == 0
-  t = (np.arange (n) + (int (64 * reps * zoom) - n + 1) // 2) / (64 * zoom)
-  k = np.floor (t)
-  pos = np.minimum ((t - k) * bins, bins - 1).astype (int)
-  return np.where (k % 2, bins - 1 - pos, pos)
+  tile_width = 64 * zoom
+  crop = (int (64 * reps * zoom) - n + 1) // 2
+  tiles, offsets = np.divmod (np.arange (n) + crop, tile_width)
+  pos = np.minimum (offsets * bins / tile_width, bins - 1).astype (int)
+  return np.where (tiles % 2, bins - 1 - pos, pos)
 
 
-def compute_tiling_artifact_loss (orig: np.ndarray, wm: np.ndarray, zoom: float = None) -> MetricResult:
+def compute_tiling_artifact_loss (orig: np.ndarray, wm: np.ndarray, zoom: float = None, dynamic_zoom: float = None) -> MetricResult:
   """Mean absolute difference after averaging all imagewmark tiles into one.
 
   imagewmark repeats one 64x64 watermark unit, scaled by zoom and mirrored on every other
   tile, centered on the image. Averaging the tiles keeps what repeats and cancels the rest.
-  zoom defaults to the zoom imagewmark picks for the image size.
+  When zoom is omitted, use the image size and imagewmark's dynamic zoom setting.
   Images with less than two tiles per side have no repetition to measure, raw None.
 
   Distance anchors: excellent <1.5, good <2.5, acceptable <5, poor <15
@@ -228,19 +229,19 @@ def compute_tiling_artifact_loss (orig: np.ndarray, wm: np.ndarray, zoom: float 
   if zoom is not None and zoom <= 0:
     raise ValueError ("zoom must be positive")
   h, w = orig.shape[:2]
-  zoom = zoom or max (min (h, w) / 64 / 8, 1.5)  # config.dynamic_zoom, config.minimum_zoom
+  if zoom is None:
+    units = dynamic_zoom if dynamic_zoom is not None and dynamic_zoom > 0 else 8
+    zoom = max (min (h, w) / 64 / units, 1.5)
   if min (h, w) < 2 * 64 * zoom:
     return MetricResult (raw=None, unit="", direction=-1, calibrated=0.0)
 
-  # Ascending (lower=better)
-  # POI source: custom metric — set on imagewmark embeddings at strength 0.5 to 8,
-  # so the distance follows Butteraugli on the same images
+  # Anchors from two imagewmark strength sweeps. See PEM.md.
   _anchors = [
     (0.0, 0.00),
-    (1.5, QUALITY_EXCELLENT),   # excellent: default strength on most images
-    (2.5, QUALITY_GOOD),   # good: strength 4
-    (5.0, QUALITY_ACCEPTABLE),  # acceptable: strength 8
-    (15.0, QUALITY_POOR),  # poor: obvious repeated pattern
+    (1.5, QUALITY_EXCELLENT),
+    (2.5, QUALITY_GOOD),
+    (5.0, QUALITY_ACCEPTABLE),
+    (15.0, QUALITY_POOR),
   ]
 
   bins = int (round (64 * zoom))
@@ -355,7 +356,8 @@ def compute_cvvdp (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
 # ---------------------------------------------------------------------------
 
 def compute_all_metrics (original_path: str, watermarked_path: str, zoom: float = None, skip_text: bool = False, skip_tiling: bool = False,
-                         skip_ssimulacra2: bool = False, skip_butteraugli: bool = False, skip_cvvdp: bool = False, verbose: bool = False) -> dict:
+                         skip_ssimulacra2: bool = False, skip_butteraugli: bool = False, skip_cvvdp: bool = False,
+                         verbose: bool = False, dynamic_zoom: float = None) -> dict:
   """Load images and compute every metric.
 
   Returns the JSON result {"metrics": {key: MetricResult as dict}, "input": {...}},
@@ -373,7 +375,7 @@ def compute_all_metrics (original_path: str, watermarked_path: str, zoom: float 
   metrics["ssimulacra2"] = None if skip_ssimulacra2 else run ("SSIMULACRA2", compute_ssimulacra2, original_path, watermarked_path)
   metrics["butteraugli_l3"], metrics["butteraugli_l2"] = (None, None) if skip_butteraugli else run ("Butteraugli", compute_butteraugli, orig, wm)
   metrics["text_fidelity_l1"] = None if skip_text else run ("text fidelity", compute_text_fidelity, orig, wm)
-  metrics["tiling_artifact"] = None if skip_tiling else run ("tile repetition", compute_tiling_artifact_loss, orig, wm, zoom)
+  metrics["tiling_artifact"] = None if skip_tiling else run ("tile repetition", compute_tiling_artifact_loss, orig, wm, zoom, dynamic_zoom)
   metrics["cvvdp"] = None if skip_cvvdp else run ("CVVDP", compute_cvvdp, orig, wm)
   return {
     "metrics": {k: asdict (v) if v else None for k, v in metrics.items()},
