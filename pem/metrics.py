@@ -206,7 +206,7 @@ def compute_text_fidelity (orig: np.ndarray, wm: np.ndarray) -> MetricResult:
 # ---------------------------------------------------------------------------
 
 def _tile_positions (n: int, zoom: float, bins: int) -> np.ndarray:
-  """Position of each row or column inside imagewmark's mirrored tiles, see src/embed.py."""
+  """Position inside imagewmark's mirrored tiles, using the truncated canvas size from cxx/embed.cc."""
   reps = int (n / 64 / zoom) + 2
   reps += reps % 2 == 0
   t = (np.arange (n) + (int (64 * reps * zoom) - n + 1) // 2) / (64 * zoom)

@@ -168,7 +168,7 @@ is the mean absolute pixel difference inside these boxes.
 
 **Tile repetition.** imagewmark repeats one 64x64 watermark unit over the image,
 scaled by the zoom and mirrored on every other tile, with the middle tile centered
-on the image (`src/embed.py`). The zoom fits 8 tiles across the short side, but at
+on the image (`cxx/embed.cc`). The zoom fits 8 tiles across the short side, but at
 least 1.5, so tiles are 96 px or larger. Mirroring keeps the pattern continuous,
 there are no seams at tile edges, so the visible effect of the tiling is the
 repeated pattern itself. The metric folds the difference image, averaged over

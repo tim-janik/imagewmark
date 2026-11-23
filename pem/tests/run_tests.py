@@ -20,7 +20,7 @@ from calibrate import calibrate  # noqa: E402
 from constants import quality_label  # noqa: E402
 from display import compute_combined  # noqa: E402
 from metrics import compute_butteraugli  # noqa: E402
-from metrics import _get_ocr, compute_mse_psnr, compute_ssim, compute_text_fidelity, compute_tiling_artifact_loss  # noqa: E402
+from metrics import _get_ocr, _tile_positions, compute_mse_psnr, compute_ssim, compute_text_fidelity, compute_tiling_artifact_loss  # noqa: E402
 
 METRIC_KEYS = {"mse", "psnr", "ms_ssim", "ssimulacra2", "butteraugli_l3", "butteraugli_l2",
                "cvvdp", "text_fidelity_l1", "tiling_artifact"}
@@ -130,6 +130,8 @@ def test_tile_repetition ():
   check (r.raw < 1.0, f"same pixels shuffled barely repeat (got {r.raw})")
   r = compute_tiling_artifact_loss (photo (100, 100), photo (100, 100) + 5)
   check (r.raw is None and r.calibrated == 0.0, f"image below two tiles: raw None, distance 0 (got {r})")
+  pos = _tile_positions (1005, 1005 / 512, 126)
+  check (pos[0] == 63, "fractional zoom uses the same 188-pixel crop offset as imagewmark")
   for zoom in (0, -1):
     try:
       compute_tiling_artifact_loss (photo(), photo(), zoom=zoom)
