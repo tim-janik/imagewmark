@@ -132,9 +132,16 @@ float_fidelity()
 # vips colourspace so mixed colorspace outputs compare consistently)
 vips_fidelity()
 {
-  vips colourspace "$1" "$tmpdir/v_ref.png" srgb
-  vips colourspace "$2" "$tmpdir/v_out.png" srgb
+  vips colourspace "$1" "$tmpdir/v_ref.png" srgb || return 1
+  vips colourspace "$2" "$tmpdir/v_out.png" srgb || return 1
   awk "BEGIN { exit !($(rmse "$tmpdir/v_ref.png" "$tmpdir/v_out.png") < $3) }"
+}
+
+profile_removed()
+{
+  vipsheader -f icc-profile-data "$1" >/dev/null &&
+    vipsheader "$2" >/dev/null &&
+    ! vipsheader -f icc-profile-data "$2" >/dev/null 2>&1
 }
 
 # decodes <file> - watermark must still be decodable
@@ -181,6 +188,10 @@ if command -v vips >/dev/null 2>&1; then
   $IMCONVERT rgba16a.png -depth 16 rgba16a.tif
   vips cast base16.tif f32.v float && vips linear f32.v f32.tif 0.00001525902189669642 0
   vips cast rgba16a.tif f32a.v float && vips linear f32a.v f32a.tif 0.00001525902189669642 0
+  vips colourspace base8.png lab.tif lab
+  vips colourspace base8.png xyz.tif xyz
+  printf 'stale profile' > stale.icc
+  vips LabS2LabQ lab.tif 'labq.tif[profile=stale.icc]'
 fi
 
 # == 2. watermark every fixture ==
@@ -202,6 +213,9 @@ if command -v vips >/dev/null 2>&1; then
   "$IMAGEWMARK" add f32a.tif out_f32a.tif "$WATERMARK"     # float+alpha round trip
   "$IMAGEWMARK" add f32.tif out_f32.png "$WATERMARK"       # float to 8-bit PNG
   "$IMAGEWMARK" add f32a.tif out_f32a.png "$WATERMARK"     # float+alpha to 8-bit PNG
+  "$IMAGEWMARK" add lab.tif out_lab.tif "$WATERMARK"
+  "$IMAGEWMARK" add xyz.tif out_xyz.png "$WATERMARK"
+  "$IMAGEWMARK" add labq.tif out_labq.png "$WATERMARK"
 fi
 
 # == 3. pixel format, colorspace and alpha checks ==
@@ -250,6 +264,12 @@ check_opt vips 'alpha preserved (float+alpha to PNG)' alpha_cmp f32a.tif out_f32
 check_opt exiftool 'EXIF metadata preserved (JPEG)' exiftool_grep out_exif.jpg -Artist 'imagewmark-artist'
 check_opt exiftool 'EXIF metadata preserved (PNG)'  exiftool_grep out_exif.png -Artist 'imagewmark-artist'
 check_opt python3,vips,exiftool 'metadata matches system libvips' python3 "$SELFDIR/check-metadata.py"
+check_opt vips 'Lab output is 16-bit' depth_is out_lab.tif 16
+check_opt vips 'Lab colors preserved' vips_fidelity lab.tif out_lab.tif 0.05
+check_opt vips 'XYZ output is sRGB' colorspace_grep out_xyz.png srgb
+check_opt vips 'XYZ output is 16-bit' depth_is out_xyz.png 16
+check_opt vips 'XYZ colors preserved' vips_fidelity xyz.tif out_xyz.png 0.05
+check_opt vips,vipsheader 'LabQ conversion drops stale ICC profile' profile_removed labq.tif out_labq.png
 
 # == 4. watermark decodability ==
 # get/OpenCV cannot read 5-channel CMYK TIFFs nor 32-bit float TIFFs, so CMYKA
@@ -266,6 +286,8 @@ check 'watermark decodes (CMYKA PNG)'          decodes out_cmyka.png
 check 'watermark decodes (16-bit RGB JPEG)'    decodes out_rgba16.jpg
 check 'watermark decodes (EXIF JPEG)'          decodes out_exif.jpg
 check_opt vips 'watermark decodes (float to PNG)' decodes out_f32.png
+check_opt vips 'watermark decodes (Lab to TIFF)' decodes out_lab.tif
+check_opt vips 'watermark decodes (XYZ to PNG)' decodes out_xyz.png
 
 if [ "$failures" -ne 0 ]; then
   echo "check-formats: $failures of $checks checks FAILED"
